@@ -1,4 +1,5 @@
 import os
+
 from arango import ArangoClient
 
 ARANGO_HOST = os.getenv("ARANGO_HOST", "http://localhost:8529")
@@ -27,7 +28,7 @@ def main():
         "_key": "test",
         "title": "Тестовая диссертация",
         "author": "Иванов И.И.",
-        "year": 2026
+        "year": 2026,
     }
     if collection.has(doc["_key"]):
         collection.delete(doc["_key"])
