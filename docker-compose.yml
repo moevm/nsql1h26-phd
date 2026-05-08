@@ -1,0 +1,42 @@
+services:
+  selenium-chrome:
+    image: selenium/standalone-chrome:latest
+    container_name: selenium-chrome
+    ports:
+      - "4444:4444"
+      - "7900:7900"
+    environment:
+      - SE_VNC_NO_PASSWORD=1
+      - SE_SCREEN_WIDTH=1920
+      - SE_SCREEN_HEIGHT=1080
+      - SE_NODE_SESSION_TIMEOUT=300
+    shm_size: 2gb
+    networks:
+      - parser-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/status"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  python_app:
+    build: .
+    container_name: vak_parser
+    depends_on:
+      selenium-chrome:
+        condition: service_healthy
+    volumes:
+      - ./output:/app/output
+      - ./main.py:/app/main.py
+    environment:
+      - SELENIUM_REMOTE_URL=http://selenium-chrome:4444
+      - PYTHONUNBUFFERED=1
+    working_dir: /app
+    networks:
+      - parser-network
+    command: poetry run python main.py
+
+networks:
+  parser-network:
+    driver: bridge
