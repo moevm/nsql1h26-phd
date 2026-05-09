@@ -1,6 +1,21 @@
 services:
+  db:
+    image: arangodb/arangodb:3.12
+    container_name: arangodb
+    ports:
+      - "8529:8529"
+    environment:
+      - ARANGO_ROOT_PASSWORD=password
+    networks:
+      - parser-network
+    healthcheck:
+      test: ["CMD", "arangosh", "--server.endpoint", "http://127.0.0.1:8529", "--server.password", "password", "--javascript.execute-string", "require('internal').print(true)"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
   selenium-chrome:
-    image: selenium/standalone-chrome:latest
+    image: selenium/standalone-chrome@sha256:b36b0749f77dce2cbf9a5bc7ac02b0364c91c3a149c5c36cd46dfb04ca2b39a4
     container_name: selenium-chrome
     ports:
       - "4444:4444"
@@ -18,19 +33,24 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
-      start_period: 30s
+      start_period: 10s
 
   python_app:
     build: .
     container_name: vak_parser
     depends_on:
+      db:
+        condition: service_healthy
       selenium-chrome:
         condition: service_healthy
     volumes:
       - ./output:/app/output
-      - ./main.py:/app/main.py
     environment:
       - SELENIUM_REMOTE_URL=http://selenium-chrome:4444
+      - ARANGO_HOST=http://arangodb:8529
+      - ARANGO_USER=root
+      - ARANGO_PASSWORD=password
+      - ARANGO_DATABASE=dissertation_db
       - PYTHONUNBUFFERED=1
     working_dir: /app
     networks:
