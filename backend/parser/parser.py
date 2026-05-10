@@ -94,22 +94,19 @@ class VakParser:
 
     def _download_pdf(self, url):
         if not url:
-            return None, ""
+            return ""
         try:
             headers = {"User-Agent": "Mozilla/5.0"}
             resp = requests.get(url, headers=headers, timeout=30)
             if resp.status_code == 200:
-                filename = url.split("/")[-1]
-                if not filename:
-                    filename = "document.pdf"
                 pdf_content = resp.content
                 extracted_text = self._extract_text_from_pdf(pdf_content)
-                return extracted_text, filename
+                return extracted_text
             else:
                 print(f"failed to download PDF from {url}, status {resp.status_code}")
         except Exception as e:
             print(f"error downloading PDF: {e}")
-        return None, ""
+        return ""
 
     def _get_file_url_from_detail_url(self, detail_url):
         try:
@@ -164,7 +161,7 @@ class VakParser:
             return None
 
         file_url = self._get_file_url_from_detail_url(detail_url)
-        file_content, filename = self._download_pdf(file_url)
+        file_content = self._download_pdf(file_url)
 
         result = {
             "vak_url": detail_url,
@@ -182,7 +179,6 @@ class VakParser:
             "organization_advert_url": self._get_link_safe(driver, "Интернет-адрес объявления на сайте организации"),
             "applicant_name": applicant_name,
             "file_content": file_content,
-            "filename": filename,
         }
         return result
 

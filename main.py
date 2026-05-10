@@ -6,7 +6,7 @@ if __name__ == "__main__":
     parser = VakParser()
     all_details = parser.parse()
     if all_details:
-        db.save_dissertations(all_details)
+        db.save_parsed_data(all_details)
         print(f"Saved {len(all_details)} records to ArangoDB")
     else:
         print("No data collected")
