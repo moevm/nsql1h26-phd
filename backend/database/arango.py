@@ -1,8 +1,11 @@
 import os
 import re
 import hashlib
-from datetime import datetime, timezone
+import csv
+import io
+import json
 
+from datetime import datetime, timezone
 from arango import ArangoClient
 from arango.exceptions import DocumentInsertError
 
@@ -165,3 +168,120 @@ class DatabaseManager:
                     pass
 
         print(f"saved/updated {len(details_list)} dissertations, authors, files and edges.")
+
+    def search_dissertations(self, filters, sort_field=None, sort_order="asc", page=1, page_size=20):
+        if not self.db:
+            self.connect()
+
+        bind_vars = {}
+        filter_parts = []
+        additional_lets = []
+
+        sort_map = {
+            "title": "d.title",
+            "defense_date": "d.defense_date",
+        }
+
+        if "year_from" in filters:
+            filter_parts.append("d.defense_date >= @year_from")
+            bind_vars["year_from"] = str(filters["year_from"])
+        if "year_to" in filters:
+            filter_parts.append("d.defense_date <= @year_to")
+            bind_vars["year_to"] = str(filters["year_to"])
+        if "organization" in filters:
+            filter_parts.append("CONTAINS(LOWER(d.defense_organization_name), LOWER(@org))")
+            bind_vars["org"] = filters["organization"]
+        if "specialty_code" in filters:
+            filter_parts.append("d.specialty_code == @spec")
+            bind_vars["spec"] = filters["specialty_code"]
+        if "processing_status" in filters:
+            filter_parts.append("d.processing_status == @status")
+            bind_vars["status"] = filters["processing_status"]
+        if "author_name" in filters:
+            additional_lets.append("LET author_doc = FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author FILTER a._id == w._from RETURN a)")
+            filter_parts.append("LOWER(author_doc.full_name) == LOWER(@author_name)")
+            bind_vars["author_name"] = filters["author_name"]
+        if "keywords" in filters:
+            additional_lets.append("LET file_doc = FIRST(FOR h IN has_file FILTER h._from == d._id FOR f IN file FILTER f._id == h._to RETURN f)")
+            kw = filters["keywords"]
+            filter_parts.append("(CONTAINS(LOWER(d.title), LOWER(@kw)) OR (file_doc != null AND CONTAINS(LOWER(file_doc.content), LOWER(@kw))))")
+            bind_vars["kw"] = kw
+
+        let_clause = " ".join(additional_lets) if additional_lets else ""
+        filter_clause = " FILTER " + " AND ".join(filter_parts) if filter_parts else ""
+
+        sort_expr = "d.defense_date"
+        if sort_field:
+            if sort_field == "author_name":
+                sort_expr = "author_ext"
+            elif sort_field in sort_map:
+                sort_expr = sort_map[sort_field]
+            else:
+                sort_expr = f"d.{sort_field}"
+        direction = "ASC" if sort_order.lower() == "asc" else "DESC"
+
+        if sort_field == "author_name":
+            additional_lets.append("LET author_ext = FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author FILTER a._id == w._from RETURN a.full_name)")
+            let_clause = " ".join(additional_lets)
+
+        data = list(self.db.aql.execute(f"""
+            FOR d IN {self.diss_col_name}
+            {let_clause}
+            {filter_clause}
+            SORT {sort_expr} {direction}
+            LIMIT @offset, @limit
+            RETURN MERGE(d, {{author_name: FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author FILTER a._id == w._from RETURN a.full_name)}})
+        """, bind_vars={**bind_vars, "offset": (page - 1) * page_size, "limit": page_size}))
+
+        total = self.db.aql.execute(f"""
+            RETURN COUNT(
+                FOR d IN {self.diss_col_name}
+                {let_clause}
+                {filter_clause}
+                RETURN 1
+            )
+        """, bind_vars=bind_vars).next()
+
+        return {"total": total, "data": data}
+
+    def export_dissertations(self, filters, format="json"):
+        result = self.search_dissertations(filters, page=1, page_size=10000)
+        data = result["data"]
+        if format == "csv":
+            output = io.StringIO()
+            if data:
+                writer = csv.DictWriter(output, fieldnames=data[0].keys())
+                writer.writeheader()
+                writer.writerows(data)
+            return output.getvalue()
+        else:
+            return json.dumps(data, ensure_ascii=False, indent=2)
+
+    def get_dissertation_details(self, diss_key):
+        if not self.db:
+            self.connect()
+        query = """
+        LET d = DOCUMENT(CONCAT(@diss_coll, '/', @key))
+        LET author = FIRST(
+            FOR w IN writes
+            FILTER w._to == d._id
+            FOR a IN author
+            FILTER a._id == w._from
+            RETURN a
+        )
+        LET file = FIRST(
+            FOR h IN has_file
+            FILTER h._from == d._id
+            FOR f IN file
+            FILTER f._id == h._to
+            RETURN f
+        )
+        RETURN MERGE(d, {
+            author: author,
+            file_content: file != null ? file.content : null
+        })
+        """
+        bind_vars = {"diss_coll": self.diss_col_name, "key": diss_key}
+        cursor = self.db.aql.execute(query, bind_vars=bind_vars)
+        result = next(cursor, None)
+        return result

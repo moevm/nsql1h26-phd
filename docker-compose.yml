@@ -43,8 +43,6 @@ services:
         condition: service_healthy
       selenium-chrome:
         condition: service_healthy
-    volumes:
-      - ./output:/app/output
     environment:
       - SELENIUM_REMOTE_URL=http://selenium-chrome:4444
       - ARANGO_HOST=http://arangodb:8529
