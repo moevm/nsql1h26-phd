@@ -1,7 +1,8 @@
-import csv
 import os
 import time
-
+import requests
+from io import BytesIO
+from pypdf import PdfReader
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -10,7 +11,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 
 class VakParser:
-    def __init__(self, url="https://vak.gisnauka.ru/adverts-list/advert", max_pages=3):
+    def __init__(self, url="https://vak.gisnauka.ru/adverts-list/advert", max_pages=1):
         self.url = url
         self.max_pages = max_pages
 
@@ -78,6 +79,48 @@ class VakParser:
                 time.sleep(delay)
         return ""
 
+    def _extract_text_from_pdf(self, pdf_bytes):
+        try:
+            reader = PdfReader(BytesIO(pdf_bytes))
+            text = ""
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+            return text.strip()
+        except Exception as e:
+            print(f"error extracting text from PDF: {e}")
+            return ""
+
+    def _download_pdf(self, url):
+        if not url:
+            return None, ""
+        try:
+            headers = {"User-Agent": "Mozilla/5.0"}
+            resp = requests.get(url, headers=headers, timeout=30)
+            if resp.status_code == 200:
+                filename = url.split("/")[-1]
+                if not filename:
+                    filename = "document.pdf"
+                pdf_content = resp.content
+                extracted_text = self._extract_text_from_pdf(pdf_content)
+                return extracted_text, filename
+            else:
+                print(f"failed to download PDF from {url}, status {resp.status_code}")
+        except Exception as e:
+            print(f"error downloading PDF: {e}")
+        return None, ""
+
+    def _get_file_url_from_detail_url(self, detail_url):
+        try:
+            parts = detail_url.rstrip('/').split('/')
+            advert_id = parts[-1]
+            if advert_id.isdigit():
+                return f"https://vak.gisnauka.ru/api/att/adverts/{advert_id}/autoref-file/"
+        except Exception as e:
+            print(f"error extracting ID from {detail_url}: {e}")
+        return None
+
     def _wait_for_pagination(self, driver, timeout=30):
         try:
             WebDriverWait(driver, timeout).until(
@@ -114,11 +157,15 @@ class VakParser:
             print(f"failed to click page {target_page}: {e}")
             return False
 
-    def _process_detail_page(self, driver, detail_url, applicant_name, defense_date_list):
+    def _process_detail_page(self, driver, detail_url, applicant_name):
         driver.get(detail_url)
         if not self._wait_for_detail_page(driver):
             print(f"detail page failed: {detail_url}")
             return None
+
+        file_url = self._get_file_url_from_detail_url(detail_url)
+        file_content, filename = self._download_pdf(file_url)
+
         result = {
             "vak_url": detail_url,
             "title": self._get_text_safe(driver, "Тема диссертации"),
@@ -134,7 +181,8 @@ class VakParser:
             "organization_phone_number": self._get_text_safe(driver, "Телефон организации"),
             "organization_advert_url": self._get_link_safe(driver, "Интернет-адрес объявления на сайте организации"),
             "applicant_name": applicant_name,
-            "defense_date_list": defense_date_list
+            "file_content": file_content,
+            "filename": filename,
         }
         return result
 
@@ -170,7 +218,7 @@ class VakParser:
                     if link:
                         links_info.append((link, fio, date))
             for link, fio, date in links_info:
-                detail = self._process_detail_page(driver, link, fio, date)
+                detail = self._process_detail_page(driver, link, fio)
                 if detail:
                     page_data.append(detail)
                 driver.back()
