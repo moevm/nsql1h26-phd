@@ -50,10 +50,11 @@ services:
       - ARANGO_PASSWORD=password
       - ARANGO_DATABASE=dissertation_db
       - PYTHONUNBUFFERED=1
+    ports:
+      - "3000:3000"
     working_dir: /app
     networks:
       - parser-network
-    command: poetry run python main.py
 
 networks:
   parser-network:
