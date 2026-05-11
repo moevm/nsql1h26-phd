@@ -1,14 +1,16 @@
 import os
 import time
-import requests
 from io import BytesIO
+
+import requests
 from pypdf import PdfReader
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.ui import WebDriverWait
+
 
 class VakParser:
     def __init__(self, url="https://vak.gisnauka.ru/adverts-list/advert", max_pages=1):
@@ -26,12 +28,16 @@ class VakParser:
         options.add_experimental_option("useAutomationExtension", False)
         options.add_argument("--disable-blink-features=AutomationControlled")
         selenium_url = os.getenv("SELENIUM_REMOTE_URL", "http://localhost:4444")
-        return webdriver.Remote(command_executor=f"{selenium_url}/wd/hub", options=options)
+        return webdriver.Remote(
+            command_executor=f"{selenium_url}/wd/hub", options=options
+        )
 
     def _wait_for_table_rows(self, driver, timeout=30):
         try:
             WebDriverWait(driver, timeout).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "tbody.ant-table-tbody tr.ant-table-row"))
+                expected_conditions.presence_of_element_located(
+                    (By.CSS_SELECTOR, "tbody.ant-table-tbody tr.ant-table-row")
+                )
             )
             return True
         except TimeoutException:
@@ -41,14 +47,23 @@ class VakParser:
     def _wait_for_detail_page(self, driver, timeout=30):
         try:
             WebDriverWait(driver, timeout).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".card-block-content .info-row"))
+                expected_conditions.presence_of_element_located(
+                    (By.CSS_SELECTOR, ".card-block-content .info-row")
+                )
             )
             return True
         except TimeoutException:
             print("detail page content not loaded")
             return False
 
-    def _get_text_safe(self, driver, label_text, container_selector=".info-row", max_retries=5, delay=0.5):
+    def _get_text_safe(
+        self,
+        driver,
+        label_text,
+        container_selector=".info-row",
+        max_retries=5,
+        delay=0.5,
+    ):
         for attempt in range(max_retries):
             rows = driver.find_elements(By.CSS_SELECTOR, container_selector)
             for row in rows:
@@ -63,7 +78,14 @@ class VakParser:
                 time.sleep(delay)
         return ""
 
-    def _get_link_safe(self, driver, label_text, container_selector=".info-row", max_retries=5, delay=0.5):
+    def _get_link_safe(
+        self,
+        driver,
+        label_text,
+        container_selector=".info-row",
+        max_retries=5,
+        delay=0.5,
+    ):
         for attempt in range(max_retries):
             rows = driver.find_elements(By.CSS_SELECTOR, container_selector)
             for row in rows:
@@ -100,10 +122,8 @@ class VakParser:
             resp = requests.get(url, headers=headers, timeout=30)
             if resp.status_code == 200:
                 pdf_content = resp.content
-                extracted_text = self._extract_text_from_pdf(pdf_content)
-                return extracted_text
-            else:
-                print(f"failed to download PDF from {url}, status {resp.status_code}")
+                return self._extract_text_from_pdf(pdf_content)
+            print(f"failed to download PDF from {url}, status {resp.status_code}")
         except Exception as e:
             print(f"error downloading PDF: {e}")
         return ""
@@ -121,7 +141,9 @@ class VakParser:
     def _wait_for_pagination(self, driver, timeout=30):
         try:
             WebDriverWait(driver, timeout).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "ul.ant-pagination"))
+                expected_conditions.presence_of_element_located(
+                    (By.CSS_SELECTOR, "ul.ant-pagination")
+                )
             )
             return True
         except TimeoutException:
@@ -132,13 +154,21 @@ class VakParser:
         if not self._wait_for_pagination(driver):
             return False
         try:
-            page_link = driver.find_element(By.CSS_SELECTOR, f"li.ant-pagination-item[title='{target_page}']")
+            page_link = driver.find_element(
+                By.CSS_SELECTOR, f"li.ant-pagination-item[title='{target_page}']"
+            )
         except NoSuchElementException:
             try:
-                page_link = driver.find_element(By.CSS_SELECTOR, f"li.ant-pagination-item-{target_page}")
+                page_link = driver.find_element(
+                    By.CSS_SELECTOR, f"li.ant-pagination-item-{target_page}"
+                )
             except NoSuchElementException:
                 try:
-                    page_link = driver.find_element(By.XPATH, f"//li[contains(@class, 'ant-pagination-item') and .//a[text()='{target_page}']]")
+                    xpath_selector = (
+                        f"//li[contains(@class, 'ant-pagination-item') "
+                        f"and .//a[text()='{target_page}']]"
+                    )
+                    page_link = driver.find_element(By.XPATH, xpath_selector)
                 except NoSuchElementException:
                     print(f"failed to find pagination element for page {target_page}")
                     return False
@@ -147,7 +177,9 @@ class VakParser:
                 return True
             page_link.click()
             WebDriverWait(driver, 10).until(
-                EC.text_to_be_present_in_element((By.CSS_SELECTOR, "li.ant-pagination-item-active"), str(target_page))
+                expected_conditions.text_to_be_present_in_element(
+                    (By.CSS_SELECTOR, "li.ant-pagination-item-active"), str(target_page)
+                )
             )
             return True
         except Exception as e:
@@ -163,24 +195,33 @@ class VakParser:
         file_url = self._get_file_url_from_detail_url(detail_url)
         file_content = self._download_pdf(file_url)
 
-        result = {
+        return {
             "vak_url": detail_url,
             "title": self._get_text_safe(driver, "Тема диссертации"),
             "type": self._get_text_safe(driver, "Тип диссертации"),
             "science_branch": self._get_text_safe(driver, "Отрасль науки"),
             "defense_date": self._get_text_safe(driver, "Дата защиты диссертации"),
-            "primary_published_at": self._get_text_safe(driver, "Дата первичной публикации объявления"),
+            "primary_published_at": self._get_text_safe(
+                driver, "Дата первичной публикации объявления"
+            ),
             "last_edited_at": self._get_text_safe(driver, "Дата редакции объявления"),
             "specialty_code": self._get_text_safe(driver, "Шифр научной специальности"),
-            "defense_council_code": self._get_text_safe(driver, "Шифр диссертационного совета"),
-            "defense_organization_name": self._get_text_safe(driver, "Наименование организации места защиты"),
+            "defense_council_code": self._get_text_safe(
+                driver, "Шифр диссертационного совета"
+            ),
+            "defense_organization_name": self._get_text_safe(
+                driver, "Наименование организации места защиты"
+            ),
             "organization_address": self._get_text_safe(driver, "Адрес организации"),
-            "organization_phone_number": self._get_text_safe(driver, "Телефон организации"),
-            "organization_advert_url": self._get_link_safe(driver, "Интернет-адрес объявления на сайте организации"),
+            "organization_phone_number": self._get_text_safe(
+                driver, "Телефон организации"
+            ),
+            "organization_advert_url": self._get_link_safe(
+                driver, "Интернет-адрес объявления на сайте организации"
+            ),
             "applicant_name": applicant_name,
             "file_content": file_content,
         }
-        return result
 
     def _process_page(self, page_number):
         driver = None
@@ -197,10 +238,14 @@ class VakParser:
                     print(f"failed to navigate to page {page_number}")
                     return page_data
                 if not self._wait_for_table_rows(driver):
-                    print(f"table rows not loaded after navigation to page {page_number}")
+                    print(
+                        f"table rows not loaded after navigation to page {page_number}"
+                    )
                     return page_data
             links_info = []
-            rows = driver.find_elements(By.CSS_SELECTOR, "tbody.ant-table-tbody tr.ant-table-row")
+            rows = driver.find_elements(
+                By.CSS_SELECTOR, "tbody.ant-table-tbody tr.ant-table-row"
+            )
             for row in rows:
                 cells = row.find_elements(By.TAG_NAME, "td")
                 if len(cells) >= 4:
@@ -213,13 +258,16 @@ class VakParser:
                         link = ""
                     if link:
                         links_info.append((link, fio, date))
-            for link, fio, date in links_info:
+            for link, fio, _date in links_info:
                 detail = self._process_detail_page(driver, link, fio)
                 if detail:
                     page_data.append(detail)
                 driver.back()
                 self._wait_for_table_rows(driver)
-            print(f"page {page_number} completed, collected {len(page_data)} detailed records")
+            print(
+                f"page {page_number} completed, collected {len(page_data)} "
+                "detailed records"
+            )
         except Exception as e:
             print(f"error on page {page_number}: {e}")
         finally:
