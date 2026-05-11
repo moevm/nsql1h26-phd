@@ -12,6 +12,14 @@ app = FastAPI(
 db = DatabaseManager().connect()
 
 
+@app.get("/")
+def root():
+    return {
+        "service": "dissertation-api",
+        "status": "ok"
+    }
+
+
 @app.get("/api/dissertations")
 def get_dissertations():
     pass
