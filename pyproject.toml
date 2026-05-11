@@ -1,7 +1,7 @@
 [project]
 name = "nsql1h26-phd"
 version = "0.1.0"
-description = "Parser for VAK dissertations"
+description = "App for analysis VAK dissertations"
 authors = []
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,6 +16,8 @@ playwright = "^1.59.0"
 selenium = ">=4.11.0"
 webdriver-manager = "^4.0.2"
 pypdf = "^6.11.0"
+fastapi = "^0.136.1"
+uvicorn = "^0.46.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

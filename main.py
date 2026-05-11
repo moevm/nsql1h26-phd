@@ -1,6 +1,8 @@
 from backend.database.arango import DatabaseManager
 from backend.parser.parser import VakParser
 
+import uvicorn
+
 if __name__ == "__main__":
     db = DatabaseManager().connect()
     parser = VakParser()
@@ -10,3 +12,10 @@ if __name__ == "__main__":
         print(f"Saved {len(all_details)} records to ArangoDB")
     else:
         print("No data collected")
+
+    uvicorn.run(
+        "backend.server.server:app",
+        host="0.0.0.0",
+        port=3000,
+        reload=True
+    )
