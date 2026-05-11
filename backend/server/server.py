@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import Response
 
+import uvicorn
+
 from database.arango import DatabaseManager
 from parser.parser import VakParser
 
@@ -62,3 +64,12 @@ def get_organization_details(org_id: str):
         )
     
     return result
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "server.server:app",
+        host="0.0.0.0",
+        port=3000,
+        reload=True
+    )
