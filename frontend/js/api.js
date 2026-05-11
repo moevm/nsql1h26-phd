@@ -48,6 +48,10 @@ class ApiClient {
         return this.get(`/api/dissertations?${params}`);
     }
 
+    async getDissertationDetails(dissId) {
+        return this.get(`/api/dissertations/${dissId}`);
+    }
+
     async getStatistics() {
         const totalResult = await this.getDissertations({}, 1, 1);
         const total = totalResult.total || 0;
