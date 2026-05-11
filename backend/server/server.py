@@ -32,7 +32,7 @@ def get_dissertation_details(diss_id: str):
 
 @app.get("/api/authors/{author_id}")
 def get_author_details(author_id: str):
-    result = db.get_author_details(author_id)
+    result = db.get_author_details(author_id) # нужен метод
 
     if not result:
         raise HTTPException(
@@ -45,7 +45,7 @@ def get_author_details(author_id: str):
 
 @app.get("api/organizations/{org_id}")
 def get_organization_details(org_id: str):
-    result = db.get_organization_details(org_id)
+    result = db.get_organization_details(org_id) # нужен метод
 
     if not result:
         raise HTTPException(
