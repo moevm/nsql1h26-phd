@@ -31,5 +31,26 @@ def get_dissertation_details(diss_id: str):
 
 
 @app.get("/api/authors/{author_id}")
-def get_author(author_id: str):
-    pass
+def get_author_details(author_id: str):
+    result = db.get_author_details(author_id)
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="author not found"
+        )
+    
+    return result
+
+
+@app.get("api/organizations/{org_id}")
+def get_organization_details(org_id: str):
+    result = db.get_organization_details(org_id)
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="organization not found"
+        )
+    
+    return result
