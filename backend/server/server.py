@@ -53,7 +53,7 @@ def get_author_details(author_id: str):
     return result
 
 
-@app.get("api/organizations/{org_id}")
+@app.get("/api/organizations/{org_id}")
 def get_organization_details(org_id: str):
     result = db.get_organization_details(org_id) # нужен метод
 
