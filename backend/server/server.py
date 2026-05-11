@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import Response
+from typing import Optional
 
 import uvicorn
 
@@ -23,8 +24,51 @@ def root():
 
 
 @app.get("/api/dissertations")
-def get_dissertations():
-    pass
+def get_dissertations(
+    year_from: Optional[int] = Query(None),
+    year_to: Optional[int] = Query(None),
+    organization: Optional[str] = Query(None),
+    specialty_code: Optional[str] = Query(None),
+    processing_status: Optional[str] = Query(None),
+    author_name: Optional[str] = Query(None),
+    keywords: Optional[str] = Query(None),
+    sort_field: Optional[str] = Query(None),
+    sort_order: str = Query("asc"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100)
+):
+    filters = {}
+
+    if year_from is not None:
+        filters["year_from"] = year_from
+    if year_to is not None:
+        filters["year_to"] = year_to
+    if organization:
+        filters["organization"] = organization
+    if specialty_code:
+        filters["specialty_code"] = specialty_code
+    if processing_status:
+        filters["processing_status"] = processing_status
+    if author_name:
+        filters["author_name"] = author_name
+    if keywords:
+        filters["keywords"] = keywords
+
+    result = db.search_dissertations(
+        filters=filters,
+        sort_field=sort_field,
+        sort_order=sort_order,
+        page=page,
+        page_size=page_size
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="dissertation not found"
+        )
+
+    return result
 
 
 @app.get("/api/dissertations/{diss_id}")
