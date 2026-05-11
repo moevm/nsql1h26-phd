@@ -11,6 +11,12 @@ app = FastAPI(
 
 db = DatabaseManager().connect()
 
+
+@app.get("/api/dissertations")
+def get_dissertations():
+    pass
+
+
 @app.get("/api/dissertations/{diss_id}")
 def get_dissertation_details(diss_id: str):
     result = db.get_dissertation_details(diss_id)
@@ -23,3 +29,7 @@ def get_dissertation_details(diss_id: str):
 
     return result
 
+
+@app.get("/api/authors/{author_id}")
+def get_author(author_id: str):
+    pass
