@@ -119,14 +119,6 @@ def export_dissertations(
     processing_status: Optional[str] = Query(None),
     author_name: Optional[str] = Query(None),
     keywords: Optional[str] = Query(None),
-
-    sort_field: Optional[str] = Query(None),
-    sort_order: str = Query("asc"),
-
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-
-    export_all: bool = Query(False),
     format: str = Query("json")
 ):
 
