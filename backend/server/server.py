@@ -12,6 +12,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 db = DatabaseManager().connect()
 
 
@@ -93,7 +103,7 @@ def get_author_details(author_id: str):
             status_code=404,
             detail="author not found"
         )
-    
+
     return result
 
 
@@ -106,7 +116,7 @@ def get_organization_details(org_id: str):
             status_code=404,
             detail="organization not found"
         )
-    
+
     return result
 
 
@@ -149,7 +159,7 @@ def export_dissertations(
         filters=filters,
         format=format,
     )
-    
+
     if format == "csv":
         media_type = "text/csv"
         filename = "dissertations.csv"
