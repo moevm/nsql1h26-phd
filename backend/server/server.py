@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException, Query
 
-from arango import DatabaseManager
-from parser import VakParser
+from database.arango import DatabaseManager
+from parser.parser import VakParser
 
 app = FastAPI(
-    title="",
+    title="Dissertation API",
     version="1.0.0"
 )
 
