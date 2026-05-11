@@ -110,7 +110,7 @@ def get_organization_details(org_id: str):
     return result
 
 
-@app.get("/api/dissertations/export")
+@app.get("/api/export")
 def export_dissertations(
     year_from: Optional[int] = Query(None),
     year_to: Optional[int] = Query(None),
@@ -156,11 +156,6 @@ def export_dissertations(
     content = db.export_dissertations(
         filters=filters,
         format=format,
-        sort_field=sort_field,
-        sort_order=sort_order,
-        page=page,
-        page_size=page_size,
-        export_all=export_all
     )
     
     if format == "csv":
