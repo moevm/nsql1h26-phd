@@ -109,3 +109,58 @@ def get_organization_details(org_id: str):
     
     return result
 
+
+@app.get("/api/export")
+def export_dissertations(
+    year_from: Optional[int] = Query(None),
+    year_to: Optional[int] = Query(None),
+    organization: Optional[str] = Query(None),
+    specialty_code: Optional[str] = Query(None),
+    processing_status: Optional[str] = Query(None),
+    author_name: Optional[str] = Query(None),
+    keywords: Optional[str] = Query(None),
+    format: str = Query("json")
+):
+
+    filters = {}
+
+    if year_from is not None:
+        filters["year_from"] = year_from
+
+    if year_to is not None:
+        filters["year_to"] = year_to
+
+    if organization:
+        filters["organization"] = organization
+
+    if specialty_code:
+        filters["specialty_code"] = specialty_code
+
+    if processing_status:
+        filters["processing_status"] = processing_status
+
+    if author_name:
+        filters["author_name"] = author_name
+
+    if keywords:
+        filters["keywords"] = keywords
+
+    content = db.export_dissertations(
+        filters=filters,
+        format=format,
+    )
+    
+    if format == "csv":
+        media_type = "text/csv"
+        filename = "dissertations.csv"
+    else:
+        media_type = "application/json"
+        filename = "dissertations.json"
+
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
