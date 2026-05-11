@@ -21,8 +21,10 @@ class DatabaseManager:
         self.diss_col_name = "dissertation"
         self.author_col_name = "author"
         self.file_col_name = "file"
+        self.org_col_name = "organization"
         self.writes_edge_name = "writes"
         self.has_file_edge_name = "has_file"
+        self.has_org_edge_name = "has_organization"
 
     def connect(self):
         self.client = ArangoClient(hosts=self.host)
@@ -34,17 +36,16 @@ class DatabaseManager:
         self._ensure_vertex_collection(self.diss_col_name)
         self._ensure_vertex_collection(self.author_col_name)
         self._ensure_vertex_collection(self.file_col_name)
+        self._ensure_vertex_collection(self.org_col_name)
         self._ensure_edge_collection(self.writes_edge_name)
         self._ensure_edge_collection(self.has_file_edge_name)
+        self._ensure_edge_collection(self.has_org_edge_name)
 
         self.db.collection(self.diss_col_name).add_index(
             {"type": "hash", "fields": ["vak_url"], "unique": True}
         )
         self.db.collection(self.author_col_name).add_index(
             {"type": "hash", "fields": ["full_name"], "unique": True, "sparse": False}
-        )
-        self.db.collection(self.file_col_name).add_index(
-            {"type": "hash", "fields": ["dissertation_key"], "unique": False}
         )
         return self
 
@@ -71,11 +72,65 @@ class DatabaseManager:
         else:
             return "a_" + hashlib.md5(full_name.encode()).hexdigest()[:16]
 
+    def _slugify_org_key(self, org_name: str):
+        name = org_name.strip()
+        name = re.sub(r'\s+', '_', name)
+        name = re.sub(r'[^a-zA-Z0-9_]', '', name)
+        if name:
+            if name.startswith('_'):
+                name = name.lstrip('_')
+            if not name:
+                name = "org_" + hashlib.md5(org_name.encode()).hexdigest()[:16]
+            return name
+        else:
+            return "org_" + hashlib.md5(org_name.encode()).hexdigest()[:16]
+
     def _extract_dissertation_key(self, vak_url: str):
         parts = vak_url.rstrip('/').split('/')
         raw = parts[-1] if parts else "unknown"
         clean = re.sub(r'[^a-zA-Z0-9_\-:.@()+,=;$!*\'%]', '', raw)
         return clean or hashlib.md5(vak_url.encode()).hexdigest()[:16]
+
+    def _parse_date(self, date_str):
+        if not date_str:
+            return ""
+        parts = date_str.strip().split('.')
+        if len(parts) == 3:
+            day, month, year = parts
+            try:
+                return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            except ValueError:
+                return date_str
+        return date_str
+
+    def _save_organization(self, org_name, org_address, org_phone, now):
+        if not org_name:
+            return None
+        org_key = self._slugify_org_key(org_name)
+        org_coll = self.db.collection(self.org_col_name)
+        if not org_coll.has(org_key):
+            org_doc = {
+                "_key": org_key,
+                "full_name": org_name,
+                "address": org_address or "",
+                "phone_number": org_phone or "",
+                "city": "",
+                "country": "Россия",
+                "created_at": now
+            }
+            org_coll.insert(org_doc)
+        else:
+            update_fields = {}
+            if org_address:
+                update_fields["address"] = org_address
+            if org_phone:
+                update_fields["phone_number"] = org_phone
+            if update_fields:
+                self.db.aql.execute(
+                    "FOR o IN @@coll FILTER o._key == @key UPDATE o WITH @fields IN @@coll",
+                    bind_vars={"@coll": self.org_col_name, "key": org_key, "fields": update_fields}
+                )
+        return org_key
 
     def save_parsed_data(self, details_list: list):
         if not self.db:
@@ -86,6 +141,7 @@ class DatabaseManager:
         file_coll = self.db.collection(self.file_col_name)
         writes_coll = self.db.collection(self.writes_edge_name)
         has_file_coll = self.db.collection(self.has_file_edge_name)
+        has_org_coll = self.db.collection(self.has_org_edge_name)
 
         now = datetime.now(timezone.utc).isoformat()
 
@@ -102,8 +158,7 @@ class DatabaseManager:
                 author_doc = {
                     "_key": author_key,
                     "full_name": full_name,
-                    "dissertations_count": 1,
-                    "first_seen": now
+                    "dissertations_count": 1
                 }
                 author_coll.insert(author_doc)
             else:
@@ -112,19 +167,25 @@ class DatabaseManager:
                     bind_vars={"@coll": self.author_col_name, "key": author_key}
                 )
 
+            org_name = item.get("defense_organization_name", "")
+            org_address = item.get("organization_address", "")
+            org_phone = item.get("organization_phone_number", "")
+            org_key = self._save_organization(org_name, org_address, org_phone, now)
+
+            defense_date = self._parse_date(item.get("defense_date", ""))
+            primary_pub = self._parse_date(item.get("primary_published_at", ""))
+            last_edited = self._parse_date(item.get("last_edited_at", ""))
+
             diss_doc = {
                 "_key": diss_key,
                 "title": item.get("title", ""),
                 "type": item.get("type", ""),
                 "science_branch": item.get("science_branch", ""),
-                "defense_date": item.get("defense_date", ""),
-                "primary_published_at": item.get("primary_published_at", ""),
-                "last_edited_at": item.get("last_edited_at", ""),
+                "defense_date": defense_date,
+                "primary_published_at": primary_pub,
+                "last_edited_at": last_edited,
                 "specialty_code": item.get("specialty_code", ""),
                 "defense_council_code": item.get("defense_council_code", ""),
-                "defense_organization_name": item.get("defense_organization_name", ""),
-                "organization_address": item.get("organization_address", ""),
-                "organization_phone_number": item.get("organization_phone_number", ""),
                 "vak_url": vak_url,
                 "organization_advert_url": item.get("organization_advert_url", ""),
                 "processing_status": "completed",
@@ -144,15 +205,26 @@ class DatabaseManager:
             except DocumentInsertError:
                 pass
 
+            if org_key:
+                org_edge_key = f"{diss_key}_{org_key}"
+                org_edge_doc = {
+                    "_key": org_edge_key,
+                    "_from": f"{self.diss_col_name}/{diss_key}",
+                    "_to": f"{self.org_col_name}/{org_key}"
+                }
+                try:
+                    has_org_coll.insert(org_edge_doc, overwrite=True)
+                except DocumentInsertError:
+                    pass
+
             file_content = item.get("file_content", "")
             if file_content:
                 file_key = f"{diss_key}_file"
                 file_doc = {
                     "_key": file_key,
-                    "dissertation_key": diss_key,
-                    "content": file_content,
-                    "size_bytes": len(file_content.encode("utf-8")),
-                    "created_at": now
+                    "filename": f"{diss_key}_autoref.pdf",
+                    "autoref_text": file_content,
+                    "size_bytes": len(file_content.encode("utf-8"))
                 }
                 file_coll.insert(file_doc, overwrite=True)
 
@@ -167,7 +239,7 @@ class DatabaseManager:
                 except DocumentInsertError:
                     pass
 
-        print(f"saved/updated {len(details_list)} dissertations, authors, files and edges.")
+        print(f"saved/updated {len(details_list)} dissertations, authors, organizations, files and edges.")
 
     def search_dissertations(self, filters, sort_field=None, sort_order="asc", page=1, page_size=20):
         if not self.db:
@@ -183,28 +255,29 @@ class DatabaseManager:
         }
 
         if "year_from" in filters:
-            filter_parts.append("d.defense_date >= @year_from")
+            filter_parts.append("LEFT(d.defense_date, 4) >= @year_from")
             bind_vars["year_from"] = str(filters["year_from"])
         if "year_to" in filters:
-            filter_parts.append("d.defense_date <= @year_to")
+            filter_parts.append("LEFT(d.defense_date, 4) <= @year_to")
             bind_vars["year_to"] = str(filters["year_to"])
         if "organization" in filters:
-            filter_parts.append("CONTAINS(LOWER(d.defense_organization_name), LOWER(@org))")
+            additional_lets.append("LET org_doc = FIRST(FOR o IN has_organization FILTER o._from == d._id FOR org IN organization FILTER org._id == o._to RETURN org)")
+            filter_parts.append("CONTAINS(LOWER(org_doc.full_name), LOWER(@org))")
             bind_vars["org"] = filters["organization"]
         if "specialty_code" in filters:
-            filter_parts.append("d.specialty_code == @spec")
+            filter_parts.append("CONTAINS(LOWER(d.specialty_code), LOWER(@spec))")
             bind_vars["spec"] = filters["specialty_code"]
         if "processing_status" in filters:
             filter_parts.append("d.processing_status == @status")
             bind_vars["status"] = filters["processing_status"]
         if "author_name" in filters:
             additional_lets.append("LET author_doc = FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author FILTER a._id == w._from RETURN a)")
-            filter_parts.append("LOWER(author_doc.full_name) == LOWER(@author_name)")
+            filter_parts.append("CONTAINS(LOWER(author_doc.full_name), LOWER(@author_name))")
             bind_vars["author_name"] = filters["author_name"]
         if "keywords" in filters:
             additional_lets.append("LET file_doc = FIRST(FOR h IN has_file FILTER h._from == d._id FOR f IN file FILTER f._id == h._to RETURN f)")
             kw = filters["keywords"]
-            filter_parts.append("(CONTAINS(LOWER(d.title), LOWER(@kw)) OR (file_doc != null AND CONTAINS(LOWER(file_doc.content), LOWER(@kw))))")
+            filter_parts.append("(CONTAINS(LOWER(d.title), LOWER(@kw)) OR (file_doc != null AND CONTAINS(LOWER(file_doc.autoref_text), LOWER(@kw))))")
             bind_vars["kw"] = kw
 
         let_clause = " ".join(additional_lets) if additional_lets else ""
@@ -214,6 +287,8 @@ class DatabaseManager:
         if sort_field:
             if sort_field == "author_name":
                 sort_expr = "author_ext"
+            elif sort_field == "organization":
+                sort_expr = "org_ext"
             elif sort_field in sort_map:
                 sort_expr = sort_map[sort_field]
             else:
@@ -222,7 +297,9 @@ class DatabaseManager:
 
         if sort_field == "author_name":
             additional_lets.append("LET author_ext = FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author FILTER a._id == w._from RETURN a.full_name)")
-            let_clause = " ".join(additional_lets)
+        elif sort_field == "organization":
+            additional_lets.append("LET org_ext = FIRST(FOR o IN has_organization FILTER o._from == d._id FOR org IN organization FILTER org._id == o._to RETURN org.full_name)")
+        let_clause = " ".join(additional_lets)
 
         data = list(self.db.aql.execute(f"""
             FOR d IN {self.diss_col_name}
@@ -230,7 +307,10 @@ class DatabaseManager:
             {filter_clause}
             SORT {sort_expr} {direction}
             LIMIT @offset, @limit
-            RETURN MERGE(d, {{author_name: FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author FILTER a._id == w._from RETURN a.full_name)}})
+            RETURN MERGE(d, {{
+                author_name: FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author FILTER a._id == w._from RETURN a.full_name),
+                organization_name: FIRST(FOR o IN has_organization FILTER o._from == d._id FOR org IN organization FILTER org._id == o._to RETURN org.full_name)
+            }})
         """, bind_vars={**bind_vars, "offset": (page - 1) * page_size, "limit": page_size}))
 
         total = self.db.aql.execute(f"""
@@ -276,12 +356,59 @@ class DatabaseManager:
             FILTER f._id == h._to
             RETURN f
         )
+        LET org = FIRST(
+            FOR ho IN has_organization
+            FILTER ho._from == d._id
+            FOR o IN organization
+            FILTER o._id == ho._to
+            RETURN o
+        )
         RETURN MERGE(d, {
             author: author,
-            file_content: file != null ? file.content : null
+            file_content: file != null ? file.autoref_text : null,
+            file_filename: file != null ? file.filename : null,
+            organization: org
         })
         """
         bind_vars = {"diss_coll": self.diss_col_name, "key": diss_key}
+        cursor = self.db.aql.execute(query, bind_vars=bind_vars)
+        result = next(cursor, None)
+        return result
+
+    def get_author_details(self, author_id):
+        if not self.db:
+            self.connect()
+        query = """
+        LET a = DOCUMENT(CONCAT(@author_coll, '/', @key))
+        LET dissertations = (
+            FOR w IN writes
+            FILTER w._from == a._id
+            FOR d IN dissertation
+            FILTER d._id == w._to
+            RETURN d
+        )
+        RETURN MERGE(a, { dissertations: dissertations })
+        """
+        bind_vars = {"author_coll": self.author_col_name, "key": author_id}
+        cursor = self.db.aql.execute(query, bind_vars=bind_vars)
+        result = next(cursor, None)
+        return result
+
+    def get_organization_details(self, org_id):
+        if not self.db:
+            self.connect()
+        query = """
+        LET o = DOCUMENT(CONCAT(@org_coll, '/', @key))
+        LET dissertations = (
+            FOR ho IN has_organization
+            FILTER ho._to == o._id
+            FOR d IN dissertation
+            FILTER d._id == ho._from
+            RETURN d
+        )
+        RETURN MERGE(o, { dissertations: dissertations })
+        """
+        bind_vars = {"org_coll": self.org_col_name, "key": org_id}
         cursor = self.db.aql.execute(query, bind_vars=bind_vars)
         result = next(cursor, None)
         return result
