@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Диссертационная система</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="header-inner">
+        <div class="logo">Диссертационная система</div>
+        
+        <nav class="nav">
+          <a href="index.html" class="nav-link active">Главная</a>
+          <a href="dissertation.html" class="nav-link">Диссертации</a>
+          <a href="author-profile.html" class="nav-link">Авторы</a>
+          <a href="organization-detail.html" class="nav-link active">Организации</a>
+          <a href="#" class="nav-link">Отчёты</a>
+        </nav>
+        
+        <div class="user-area">
+          <div class="notification-badge">🔔</div>
+          <div class="avatar"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="search-section">
+        <h1 class="welcome-title">Добро пожаловать, Александр!</h1>
+        
+        <div class="search-bar">
+          <span>🔍</span>
+          <input type="text" placeholder="Поиск диссертаций, авторов, организаций...">
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">📄</div>
+          <div>
+            <div class="stat-label">Всего диссертаций</div>
+            <div class="stat-value">1,234</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">👤</div>
+          <div>
+            <div class="stat-label">Авторов</div>
+            <div class="stat-value">987</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon purple">🏛️</div>
+          <div>
+            <div class="stat-label">Организаций</div>
+            <div class="stat-value">56</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">📚</div>
+          <div>
+            <div class="stat-label">Специальностей</div>
+            <div class="stat-value">78</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div>
+          <div class="card card-margin-bottom">
+            <div class="card-header">
+              <span class="card-title">Последние добавленные диссертации</span>
+              <a href="#" class="card-link">Все диссертации →</a>
+            </div>
+            <ul class="dissertation-list">
+              <li class="dissertation-item">
+                <div>
+                  <div class="dissertation-title">Машинное обучение в анализе медицинских данных</div>
+                  <div class="dissertation-meta">Иванов А.П. • 2024</div>
+                </div>
+                <span>→</span>
+              </li>
+              <li class="dissertation-item">
+                <div>
+                  <div class="dissertation-title">Квантовые алгоритмы для криптографии</div>
+                  <div class="dissertation-meta">Петрова М.В. • 2024</div>
+                </div>
+                <span>→</span>
+              </li>
+              <li class="dissertation-item">
+                <div>
+                  <div class="dissertation-title">Нейронные сети в обработке естественного языка</div>
+                  <div class="dissertation-meta">Сидоров В.К. • 2024</div>
+                </div>
+                <span>→</span>
+              </li>
+              <li class="dissertation-item">
+                <div>
+                  <div class="dissertation-title">Блокчейн технологии в финансовых системах</div>
+                  <div class="dissertation-meta">Козлова Е.А. • 2023</div>
+                </div>
+                <span>→</span>
+              </li>
+              <li class="dissertation-item">
+                <div>
+                  <div class="dissertation-title">Искусственный интеллект в автономных системах</div>
+                  <div class="dissertation-meta">Морозов Д.И. • 2023</div>
+                </div>
+                <span>→</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Последние задачи</span>
+            </div>
+            <ul class="task-list">
+              <li class="task-item">
+                <div class="task-info">
+                  <div class="task-status green"></div>
+                  <div>
+                    <div class="task-name">Импорт диссертаций</div>
+                    <div class="task-time">Завершено • 2 часа назад</div>
+                  </div>
+                </div>
+                <span class="badge badge-success">Готово</span>
+              </li>
+              <li class="task-item">
+                <div class="task-info">
+                  <div class="task-status blue"></div>
+                  <div>
+                    <div class="task-name">Генерация отчёта</div>
+                    <div class="task-time">Выполняется • 15 минут назад</div>
+                  </div>
+                </div>
+                <span class="badge badge-progress">В процессе</span>
+              </li>
+              <li class="task-item">
+                <div class="task-info">
+                  <div class="task-status yellow"></div>
+                  <div>
+                    <div class="task-name">Анализ дубликатов</div>
+                    <div class="task-time">В очереди • 30 минут назад</div>
+                  </div>
+                </div>
+                <span class="badge badge-pending">Ожидает</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <div class="card card-margin-bottom">
+            <div class="card-header">
+              <span class="card-title">Быстрые ссылки</span>
+            </div>
+            <div class="quick-links">
+              <a href="#" class="quick-link blue">
+                <div class="quick-link-content">
+                  <span>🔍</span>
+                  <span class="quick-link-text">Новый поиск</span>
+                </div>
+                <span>→</span>
+              </a>
+              <a href="#" class="quick-link green">
+                <div class="quick-link-content">
+                  <span>📊</span>
+                  <span class="quick-link-text">Построить отчёт</span>
+                </div>
+                <span>→</span>
+              </a>
+              <a href="#" class="quick-link purple">
+                <div class="quick-link-content">
+                  <span>📥</span>
+                  <span class="quick-link-text">Запустить импорт</span>
+                </div>
+                <span>→</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Диссертации по годам</span>
+            </div>
+            <div class="chart-container">
+              <div class="chart-bars">
+                <div class="chart-bar" style="height: 60px;"></div>
+                <div class="chart-bar" style="height: 80px;"></div>
+                <div class="chart-bar" style="height: 110px;"></div>
+                <div class="chart-bar" style="height: 140px;"></div>
+                <div class="chart-bar" style="height: 170px;"></div>
+                <div class="chart-bar" style="height: 190px;"></div>
+                <div class="chart-bar" style="height: 200px;"></div>
+                <div class="chart-bar" style="height: 185px;"></div>
+                <div class="chart-bar" style="height: 160px;"></div>
+              </div>
+              <div class="chart-labels">
+                <span>2015</span><span>2017</span><span>2019</span><span>2021</span><span>2023</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 48px;">
+        <div class="card-header">
+          <span class="card-title">Предустановленные отчёты</span>
+        </div>
+        <div class="reports-grid">
+          <div class="report-card">
+            <div class="report-icon">🏛️</div>
+            <div class="report-name">Сравнение вузов</div>
+          </div>
+          <div class="report-card">
+            <div class="report-icon">⚠️</div>
+            <div class="report-name">Аномалии</div>
+          </div>
+          <div class="report-card">
+            <div class="report-icon">📈</div>
+            <div class="report-name">Тренды</div>
+          </div>
+          <div class="report-card">
+            <div class="report-icon">📅</div>
+            <div class="report-name">По периодам</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
