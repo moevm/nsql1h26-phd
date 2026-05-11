@@ -1,7 +1,7 @@
+import uvicorn
+
 from backend.database.arango import DatabaseManager
 from backend.parser.parser import VakParser
-
-import uvicorn
 
 if __name__ == "__main__":
     db = DatabaseManager().connect()
