@@ -5,7 +5,7 @@ services:
     environment:
       - ARANGO_ROOT_PASSWORD=password
     networks:
-      - parser-network
+      - dissertations-network
     healthcheck:
       test: ["CMD", "arangosh", "--server.endpoint", "http://127.0.0.1:8529", "--server.password", "password", "--javascript.execute-string", "require('internal').print(true)"]
       interval: 10s
@@ -25,7 +25,7 @@ services:
       - SE_NODE_SESSION_TIMEOUT=300
     shm_size: 2gb
     networks:
-      - parser-network
+      - dissertations-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4444/status"]
       interval: 10s
@@ -33,9 +33,11 @@ services:
       retries: 10
       start_period: 10s
 
-  python_app:
-    build: .
-    container_name: vak_parser
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: backend
     depends_on:
       db:
         condition: service_healthy
@@ -49,11 +51,24 @@ services:
       - ARANGO_DATABASE=dissertation_db
       - PYTHONUNBUFFERED=1
     ports:
-      - "3000:3000"
+      - "8080:8080"
     working_dir: /app
     networks:
-      - parser-network
+      - dissertations-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - dissertations-network
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 networks:
-  parser-network:
+  dissertations-network:
     driver: bridge
