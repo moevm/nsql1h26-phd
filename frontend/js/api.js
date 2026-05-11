@@ -73,17 +73,25 @@ class ApiClient {
     }
 
     async getDissertationsByYears() {
-        const allData = await this.getDissertations({}, 1, 10000);
         const yearCounts = {};
 
-        allData.data?.forEach(diss => {
-            if (diss.defense_date) {
-                const year = new Date(diss.defense_date).getFullYear();
-                if (year && year >= 2015 && year <= 2026) {
-                    yearCounts[year] = (yearCounts[year] || 0) + 1;
+        const firstResult = await this.getDissertations({}, 1, 1);
+        const total = firstResult.total || 0;
+
+        const pageSize = 500;
+        const totalPages = Math.ceil(total / pageSize);
+
+        for (let page = 1; page <= totalPages; page++) {
+            const result = await this.getDissertations({}, page, pageSize);
+            result.data?.forEach(diss => {
+                if (diss.defense_date) {
+                    const year = new Date(diss.defense_date).getFullYear();
+                    if (year && year >= 2015 && year <= 2026) {
+                        yearCounts[year] = (yearCounts[year] || 0) + 1;
+                    }
                 }
-            }
-        });
+            });
+        }
 
         const years = [];
         const counts = [];

@@ -40,7 +40,7 @@ def get_dissertations(
     sort_field: str | None = Query(None),
     sort_order: str = Query("asc"),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100)
+    page_size: int = Query(20, ge=1, le=1000)
 ):
     filters = {}
 
