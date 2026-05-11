@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Поиск диссертаций - Диссертационная система</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner" style="padding: 0 32px;">
+      <div class="logo">Диссертационная система</div>
+      
+      <nav class="nav">
+        <a href="index.html" class="nav-link">Главная</a>
+        <a href="dissertation.html" class="nav-link active">Диссертации</a>
+        <a href="author-profile.html" class="nav-link">Авторы</a>
+        <a href="organization-detail.html" class="nav-link active">Организации</a>
+        <a href="#" class="nav-link">Отчёты</a>
+      </nav>
+      
+      <div class="user-area">
+        <div class="notification-badge">🔔</div>
+        <div class="avatar"></div>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="sidebar-nav">
+      <a href="main.html" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3h2v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+        Главная
+      </a>
+      <a href="#" class="sidebar-item active">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9zM4 5a1 1 0 011-1h10a1 1 0 011 1v1a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 9a1 1 0 011-1h10a1 1 0 011 1v1a1 1 0 01-1 1H5a1 1 0 01-1-1V9zM4 13a1 1 0 011-1h10a1 1 0 011 1v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-1z"/></svg>
+        Поиск диссертаций
+      </a>
+      <a href="#" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
+        Поиск авторов
+      </a>
+      <a href="#" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>
+        Поиск организаций
+      </a>
+      <a href="#" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.255 0 2.443.29 3.5.804v-10zM12.5 4c-1.255 0-2.443.29-3.5.804v10c1.057-.514 2.245-.804 3.5-.804 1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0012.5 4z"/></svg>
+        Поиск специальностей
+      </a>
+      <a href="#" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM13 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM13 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z"/></svg>
+        Расширенный поиск
+      </a>
+      
+      <div class="sidebar-divider"></div>
+      
+      <a href="#" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/></svg>
+        Аналитика
+      </a>
+      <a href="#" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5l-2-2H4z"/></svg>
+        Управление данными
+      </a>
+      <a href="#" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM8 8a2 2 0 00-2 2v1a2 2 0 002 2h4a2 2 0 002-2v-1a2 2 0 00-2-2H8z"/></svg>
+        Задачи
+      </a>
+      <a href="#" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12zM8 8a2 2 0 114 0 2 2 0 01-4 0z"/></svg>
+        Настройки профиля
+      </a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <h1 class="page-title">Поиск диссертаций / авторефератов</h1>
+    <div class="page-subtitle">Поиск по метаданным и тексту диссертаций</div>
+
+    <div class="filters-card">
+      <div class="filters-header">
+        <div class="filters-title">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="#2563EB">
+            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM13 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM13 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z"/>
+          </svg>
+          Фильтры поиска
+        </div>
+      </div>
+
+      <div class="filters-grid">
+        <div class="filter-field">
+          <label class="filter-label">Год защиты</label>
+          <div class="date-range">
+            <input type="text" class="filter-input" placeholder="От">
+            <span class="date-sep">—</span>
+            <input type="text" class="filter-input" placeholder="До">
+          </div>
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Организация защиты</label>
+          <input type="text" class="filter-input" placeholder="Начните вводить название...">
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Специальность</label>
+          <input type="text" class="filter-input" placeholder="Код или название...">
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Автор</label>
+          <input type="text" class="filter-input" placeholder="ФИО автора...">
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Научный руководитель</label>
+          <input type="text" class="filter-input" placeholder="ФИО руководителя...">
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Статус обработки</label>
+          <div class="filter-select">
+            <span>Любой</span>
+            <span>▼</span>
+          </div>
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Ключевые слова в тексте</label>
+          <input type="text" class="filter-input" placeholder="Поиск по тексту...">
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Тип защиты</label>
+          <div class="filter-select">
+            <span>Все</span>
+            <span>▼</span>
+          </div>
+        </div>
+        <div class="filter-field">
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox"> Наличие полного текста
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox"> Наличие данных о дипломе
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="filters-actions">
+        <button class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="white">
+            <path d="M11.5 5.5L8 9l-3.5-3.5"/>
+          </svg>
+          Применить фильтры
+        </button>
+        <button class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="#374151">
+            <path d="M1 1h12v2H1zM3 5h8v2H3zM5 9h4v2H5z"/>
+          </svg>
+          Сбросить
+        </button>
+      </div>
+    </div>
+
+    <div class="results-card">
+      <div class="results-header">
+        <div class="results-stats">
+          <span class="results-count">Найдено: <strong>1,247</strong> записей</span>
+          <select class="per-page-select">
+            <option>10 на странице</option>
+            <option>25 на странице</option>
+            <option>50 на странице</option>
+          </select>
+        </div>
+        <button class="btn-export">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="white">
+            <path d="M7 1v8M4 8l3 3 3-3"/>
+            <path d="M1 11h12v2H1z"/>
+          </svg>
+          Экспорт результатов
+        </button>
+      </div>
+
+      <div class="results-table">
+        <table>
+          <thead>
+            <tr><th>Название</th><th>Автор</th><th>Год</th><th>Организация</th><th>Специальность</th><th>Тип защиты</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a href="#" class="dissertation-title">Методы машинного обучения в анализе медицинских данных</a></td>
+              <td class="author-name">Иванов А.П.</td>
+              <td class="year-value">2023</td>
+              <td class="org-name">МГУ им. М.В. Ломоносова</td>
+              <td class="spec-name">05.13.18 Математическое моделирование</td>
+              <td><span class="degree-badge vak">ВАК</span></td>
+              <td><button class="action-btn">⋮</button></td>
+            </tr>
+            <tr>
+              <td><a href="dissertation-detail.html" class="dissertation-title">Разработка алгоритмов компьютерного зрения для автономных систем</a></td>
+              <td class="author-name">Петрова М.С.</td>
+              <td class="year-value">2022</td>
+              <td class="org-name">МФТИ</td>
+              <td class="spec-name">05.13.11 Математическое и программное обеспечение</td>
+              <td><span class="degree-badge solo">Самостоятельная</span></td>
+              <td><button class="action-btn">⋮</button></td>
+            </tr>
+            <tr>
+              <td><a href="#" class="dissertation-title">Нейросетевые модели обработки естественного языка</a></td>
+              <td class="author-name">Сидоров Д.В.</td>
+              <td class="year-value">2023</td>
+              <td class="org-name">СПбГУ</td>
+              <td class="spec-name">05.13.17 Теоретические основы информатики</td>
+              <td><span class="degree-badge vak">ВАК</span></td>
+              <td><button class="action-btn">⋮</button></td>
+            </tr>
+            <tr>
+              <td><a href="#" class="dissertation-title">Квантовые вычисления в криптографии</a></td>
+              <td class="author-name">Козлов И.Н.</td>
+              <td class="year-value">2021</td>
+              <td class="org-name">НИУ ВШЭ</td>
+              <td class="spec-name">01.01.09 Дискретная математика и математическая кибернетика</td>
+              <td><span class="degree-badge vak">ВАК</span></td>
+              <td><button class="action-btn">⋮</button></td>
+            </tr>
+            <tr>
+              <td><a href="#" class="dissertation-title">Блокчейн технологии в финансовых системах</a></td>
+              <td class="author-name">Морозова Е.А.</td>
+              <td class="year-value">2022</td>
+              <td class="org-name">МГТУ им. Н.Э. Баумана</td>
+              <td class="spec-name">08.00.13 Математические и инструментальные методы экономики</td>
+              <td><span class="degree-badge solo">Самостоятельная</span></td>
+              <td><button class="action-btn">⋮</button></td>
+            </tr>
+            <tr>
+              <td><a href="#" class="dissertation-title">Системы распределённой обработки больших данных</a></td>
+              <td class="author-name">Волков С.К.</td>
+              <td class="year-value">2023</td>
+              <td class="org-name">Новосибирский ГУ</td>
+              <td class="spec-name">05.13.15 Вычислительные машины, комплексы и компьютерные сети</td>
+              <td><span class="degree-badge vak">ВАК</span></td>
+              <td><button class="action-btn">⋮</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button class="pagination-btn">←</button>
+        <button class="pagination-btn active">1</button>
+        <button class="pagination-btn">2</button>
+        <button class="pagination-btn">3</button>
+        <button class="pagination-btn">4</button>
+        <button class="pagination-btn">5</button>
+        <button class="pagination-btn">→</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
