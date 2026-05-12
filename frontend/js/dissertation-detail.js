@@ -75,8 +75,6 @@ class DissertationDetailPage {
 
         this.updateAbstractText(dissertation);
 
-        this.updateAnalysis(dissertation);
-
         this.updateStatusHistory(dissertation);
     }
 
@@ -127,35 +125,14 @@ class DissertationDetailPage {
         }).join('');
     }
 
-    updateAnalysis(dissertation) {
-        if (dissertation.keywords) {
-            const keywordsList = document.querySelector('.keywords-list');
-            if (keywordsList) {
-                keywordsList.innerHTML = '';
-                dissertation.keywords.forEach(keyword => {
-                    const tag = document.createElement('span');
-                    tag.className = 'keyword-tag';
-                    tag.textContent = keyword;
-                    keywordsList.appendChild(tag);
-                });
-            }
-        }
-
-        const similarItems = document.querySelectorAll('.similar-item');
-        similarItems.forEach((item, index) => {
-            item.addEventListener('click', () => {
-                this.showInfoMessage('Поиск похожих диссертаций в разработке');
-            });
-        });
-    }
-
     updateStatusHistory(dissertation) {
-        const statusContainer = document.querySelector('.detail-content');
         const statusHistorySection = Array.from(document.querySelectorAll('.detail-card')).find(
             card => card.querySelector('.detail-title')?.textContent.includes('История статусов')
         );
 
-        if (statusHistorySection && dissertation.processing_status) {
+        if (!statusHistorySection) return;
+
+        if (dissertation.processing_status && dissertation.updated_at) {
             const statusContent = statusHistorySection.querySelector('.detail-content');
 
             const statusRows = [
@@ -181,6 +158,8 @@ class DissertationDetailPage {
                     <div>${row.description}</div>
                 </div>
             `).join('');
+        } else {
+            statusHistorySection.style.display = 'none';
         }
     }
 
