@@ -107,6 +107,36 @@ class ApiClient {
 
         return { years, counts };
     }
+
+    async exportDissertations(filters = {}, format = 'csv') {
+        const params = new URLSearchParams();
+
+        if (filters.id) {
+            params.append('diss_id', filters.id);
+        }
+
+        params.append('export_format', format);
+
+        const response = await fetch(`/api/dissertations/export?${params}`, {
+            headers: {
+                'Accept': format === 'csv' ? 'text/csv' : 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dissertations_export.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } else {
+            throw new Error(`Failed to export ${format}`);
+        }
+    }
 }
 
 const api = new ApiClient();

@@ -536,3 +536,35 @@ class DatabaseManager:
             "totalOrganizations": org_total,
             "totalSpecialties": spec_total
         }
+
+    def export_single_dissertation(self, dissertation, export_format="json"):
+        if export_format == "csv":
+            output = io.StringIO()
+
+            csv_data = {
+                'title': dissertation.get('title', ''),
+                'type': dissertation.get('type', ''),
+                'science_branch': dissertation.get('science_branch', ''),
+                'defense_date': dissertation.get('defense_date', ''),
+                'specialty_code': dissertation.get('specialty_code', ''),
+                'defense_council_code': dissertation.get('defense_council_code', ''),
+                'vak_url': dissertation.get('vak_url', ''),
+                'author_name': (
+                    dissertation.get('author', {}).get('full_name', '')
+                    if dissertation.get('author') else ''
+                ),
+                'organization_name': (
+                    dissertation.get('organization', {}).get('full_name', '')
+                    if dissertation.get('organization') else ''
+                ),
+                'processing_status': dissertation.get('processing_status', ''),
+                'created_at': dissertation.get('created_at', ''),
+                'updated_at': dissertation.get('updated_at', ''),
+            }
+
+            writer = csv.DictWriter(output, fieldnames=csv_data.keys())
+            writer.writeheader()
+            writer.writerow(csv_data)
+            return output.getvalue()
+
+        return json.dumps(dissertation, ensure_ascii=False, indent=2, default=str)

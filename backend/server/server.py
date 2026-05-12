@@ -76,6 +76,44 @@ def get_dissertations(
     return result
 
 
+@app.get("/api/dissertations/export")
+def export_dissertation_by_id(
+    diss_id: str = Query(..., description="Dissertation ID"),
+    export_format: str = Query("csv", description="Export format: csv or json")
+):
+
+    if export_format not in ["json", "csv"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported export format. Use 'json' or 'csv'"
+        )
+
+    dissertation = db.get_dissertation_details(diss_id)
+
+    if not dissertation:
+        raise HTTPException(
+            status_code=404,
+            detail="dissertation not found"
+        )
+
+    content = db.export_single_dissertation(dissertation, export_format)
+
+    if export_format == "csv":
+        media_type = "text/csv"
+        filename = f"dissertation_{diss_id}.csv"
+    else:
+        media_type = "application/json"
+        filename = f"dissertation_{diss_id}.json"
+
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
 @app.get("/api/dissertations/{diss_id}")
 def get_dissertation_details(diss_id: str):
     result = db.get_dissertation_details(diss_id)
