@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
@@ -190,7 +190,7 @@ def export_dissertations(
 
     content = db.export_dissertations(
         filters=filters,
-        format=export_format,
+        export_format=export_format,
     )
 
     if export_format == "csv":
@@ -258,4 +258,24 @@ def get_organization_stats():
             detail="statistics not found"
         )
 
+    return result
+
+@app.post("/api/import")
+async def import_dissertations_endpoint(
+    file: UploadFile = File(...),
+    import_format: str = Query("json")
+):
+    if import_format not in ["json", "csv"]:
+        raise HTTPException(status_code=400, detail="Unsupported import format. Use 'json' or 'csv'")
+    content = await file.read()
+    try:
+        data_str = content.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded text")
+    try:
+        result = db.import_dissertations(data_str, import_format)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
     return result
