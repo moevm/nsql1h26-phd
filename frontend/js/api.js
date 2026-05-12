@@ -149,6 +149,22 @@ class ApiClient {
             throw error;
         }
     }
+
+    async getOrganizations(page = 1, pageSize = 10) {
+        return this.get(`/api/organizations?page=${page}&page_size=${pageSize}`);
+    }
+
+	async getOrganizationDetails(orgId) {
+	    return this.get(`/api/organizations/${orgId}`);
+	}
+
+	async getOrganizationDissertations(orgId, page = 1, pageSize = 10, filters = {}) {
+	    const params = new URLSearchParams({ page, page_size: pageSize });
+	    if (filters.year) params.append('year', filters.year);
+	    if (filters.specialty) params.append('specialty', filters.specialty);
+	    if (filters.search) params.append('search', filters.search);
+	    return this.get(`/api/organizations/${orgId}/dissertations?${params}`);
+	}
 }
 
 const api = new ApiClient();

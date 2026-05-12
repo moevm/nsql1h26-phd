@@ -139,10 +139,17 @@ def get_author_details(author_id: str):
 
     return result
 
+@app.get("/api/organizations")
+def get_organizations(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=1000)
+):
+    result = db.get_all_organizations(page=page, page_size=page_size)
+    return result
 
 @app.get("/api/organizations/{org_id}")
 def get_organization_details(org_id: str):
-    result = db.get_organization_details(org_id) # нужен метод
+    result = db.get_organization_details(org_id)
 
     if not result:
         raise HTTPException(
@@ -152,6 +159,14 @@ def get_organization_details(org_id: str):
 
     return result
 
+@app.get("/api/organizations/{org_id}/dissertations")
+def get_org_dissertations(
+    org_id: str, page: int = 1, page_size: int = 10,
+    year: int | None = None, specialty: str | None = None, search: str | None = None
+):
+    res = db.get_organization_dissertations(org_id, page, page_size, year, specialty, search)
+    if not res: raise HTTPException(404, detail="no dissertations")
+    return res
 
 @app.get("/api/export")
 def export_dissertations(
@@ -279,3 +294,4 @@ async def import_dissertations_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
     return result
+
