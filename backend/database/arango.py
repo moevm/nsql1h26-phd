@@ -651,6 +651,25 @@ class DatabaseManager:
         cursor = self.db.aql.execute(query, bind_vars=bind_vars)
         return next(cursor, None)
 
+    def get_all_authors(self, page=1, page_size=10):
+        if not self.db:
+            self.connect()
+        query = """
+            FOR a IN author
+                LET cnt = COUNT(
+                    FOR w IN writes
+                    FILTER w._from == a._id
+                    RETURN 1
+                )
+                SORT a.full_name ASC
+                LIMIT @offset, @limit
+                RETURN MERGE(a, {dissertations_count: cnt})
+        """
+        bind_vars = {"offset": (page - 1) * page_size, "limit": page_size}
+        data = list(self.db.aql.execute(query, bind_vars=bind_vars))
+        total = self.db.collection(self.author_col_name).count()
+        return {"total": total, "data": data}
+
     def get_author_details(self, author_id):
         if not self.db:
             self.connect()

@@ -126,10 +126,17 @@ def get_dissertation_details(diss_id: str):
 
     return result
 
+@app.get("/api/authors")
+def get_authors(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=1000)
+):
+    result = db.get_all_authors(page=page, page_size=page_size)
+    return result
 
 @app.get("/api/authors/{author_id}")
 def get_author_details(author_id: str):
-    result = db.get_author_details(author_id) # нужен метод
+    result = db.get_author_details(author_id)
 
     if not result:
         raise HTTPException(

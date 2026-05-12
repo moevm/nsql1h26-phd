@@ -165,6 +165,14 @@ class ApiClient {
 	    if (filters.search) params.append('search', filters.search);
 	    return this.get(`/api/organizations/${orgId}/dissertations?${params}`);
 	}
+
+	async getAuthorDetails(authorId) {
+		return this.get(`/api/authors/${authorId}`);
+	}
+
+    async getAuthors(page = 1, pageSize = 10) {
+        return this.get(`/api/authors?page=${page}&page_size=${pageSize}`);
+    }
 }
 
 const api = new ApiClient();

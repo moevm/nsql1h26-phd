@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Автор - Диссертационная система</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/author-detail.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner" style="padding: 0 32px;">
+            <div class="logo">Диссертационная система</div>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Главная</a>
+                <a href="dissertation.html" class="nav-link">Диссертации</a>
+                <a href="authors.html" class="nav-link active">Авторы</a>
+                <a href="organizations.html" class="nav-link active">Организации</a>
+            </nav>
+            <div class="user-area"></div>
+        </div>
+    </header>
+
+    <main style="padding: 32px;">
+        <div style="max-width: 1280px; margin: 0 auto;">
+            <div class="profile-card">
+                <div class="profile-content">
+                    <div class="profile-info">
+                        <h1 class="profile-name">Загрузка...</h1>
+                        <div class="stats-row">
+                            <div class="stat-block">
+                                <div class="stat-icon">📚</div>
+                                <div>
+                                    <div class="stat-number">0</div>
+                                    <div class="stat-label">Диссертаций</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-actions">
+                        <button class="btn-exporter" onclick="alert('Экспорт пока не реализован')">📎 Экспорт данных</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs-container">
+                <div class="tabs-header">
+                    <div class="tab-item active">Диссертации</div>
+                </div>
+                <div class="dissertations-table-wrapper">
+                    <table class="dissertations-table">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Год</th>
+                                <th>Организация</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

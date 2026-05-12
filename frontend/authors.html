@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Организации - Диссертационная система</title>
+  <title>Авторы - Диссертационная система</title>
   <link rel="stylesheet" href="styles.css">
   <script src="js/utils.js"></script>
   <script src="js/api.js"></script>
-  <script src="js/organizations.js"></script>
+  <script src="js/authors.js"></script>
 </head>
 <body>
   <header class="header">
@@ -16,31 +16,21 @@
       <nav class="nav">
         <a href="index.html" class="nav-link">Главная</a>
         <a href="dissertation.html" class="nav-link">Диссертации</a>
-        <a href="authors.html" class="nav-link">Авторы</a>
-        <a href="organizations.html" class="nav-link active">Организации</a>
+        <a href="authors.html" class="nav-link active">Авторы</a>
+        <a href="organizations.html" class="nav-link">Организации</a>
       </nav>
       <div class="user-area"></div>
     </div>
   </header>
 
-  <aside class="sidebar">
-    <div class="sidebar-nav">
-      <a href="index.html" class="sidebar-item">🏠 Главная</a>
-      <a href="#" class="sidebar-item">🔍 Расширенный поиск</a>
-      <div class="sidebar-divider"></div>
-      <a href="#" class="sidebar-item">📊 Аналитика</a>
-      <a href="#" class="sidebar-item">⚙️ Управление данными</a>
-    </div>
-  </aside>
-
   <main class="main-content">
-    <h1 class="page-title">Организации</h1>
-    <div class="page-subtitle">Список организаций, где проходили защиты диссертаций</div>
+    <h1 class="page-title">Авторы</h1>
+    <div class="page-subtitle">Список авторов диссертаций</div>
 
     <div class="results-card">
       <div class="results-header">
         <div class="results-stats">
-          <span class="results-count">Найдено: <strong>0</strong> организаций</span>
+          <span class="results-count">Найдено: <strong>0</strong> авторов</span>
           <select class="per-page-select">
             <option value="10">10 на странице</option>
             <option value="20" selected>20 на странице</option>
@@ -54,8 +44,7 @@
         <table>
           <thead>
             <tr>
-              <th>Название организации</th>
-              <th>Город</th>
+              <th>ФИО автора</th>
               <th>Количество диссертаций</th>
               <th></th>
             </tr>

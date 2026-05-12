@@ -41,12 +41,6 @@ class DissertationDetailPage {
             });
         }
 
-        document.querySelectorAll('.metadata-value.link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                this.handleMetadataClick(e.target);
-            });
-        });
-
         document.querySelectorAll('.similar-item').forEach(item => {
             item.addEventListener('click', () => {
                 this.goToSimilarDissertation(item);
@@ -79,31 +73,68 @@ class DissertationDetailPage {
     }
 
     updateMetadata(dissertation) {
-        const updates = {
-            'Автор:': dissertation.author?.full_name || dissertation.author_name || 'Не указан',
-            'Год защиты:': dissertation.defense_date ? new Date(dissertation.defense_date).getFullYear() : 'Не указан',
-            'Организация защиты:': dissertation.organization?.full_name || dissertation.organization_name || 'Не указана',
-            'Диссертационный совет:': dissertation.defense_council_code || 'Не указан',
-            'Специальность:': dissertation.specialty_code || 'Не указана',
-            'Научный руководитель:': dissertation.supervisor_name || 'Не указан',
-            'Тип защиты:': dissertation.type || 'ВАК',
-            'Добавлена:': dissertation.created_at ? new Date(dissertation.created_at).toLocaleDateString('ru-RU') : 'Не указана',
-            'Обновлена:': dissertation.updated_at ? new Date(dissertation.updated_at).toLocaleDateString('ru-RU') : 'Не указана'
-        };
+        const authorName = dissertation.author?.full_name || dissertation.author_name || 'Не указан';
+        const authorKey = dissertation.author?._key || dissertation.author_id || '';
+        const orgName = dissertation.organization?.full_name || dissertation.organization_name || 'Не указана';
+        const orgKey = dissertation.organization?._key || dissertation.organization_id || '';
+        const defenseDate = dissertation.defense_date ? new Date(dissertation.defense_date).getFullYear() : 'Не указан';
+        const councilCode = dissertation.defense_council_code || 'Не указан';
+        const specialtyCode = dissertation.specialty_code || 'Не указана';
+        const type = dissertation.type || 'ВАК';
+        const created = dissertation.created_at ? new Date(dissertation.created_at).toLocaleDateString('ru-RU') : 'Не указана';
+        const updated = dissertation.updated_at ? new Date(dissertation.updated_at).toLocaleDateString('ru-RU') : 'Не указана';
 
-        document.querySelectorAll('.metadata-field').forEach(field => {
+        const metadataFields = document.querySelectorAll('.metadata-field');
+        metadataFields.forEach(field => {
             const label = field.querySelector('.metadata-label');
             const value = field.querySelector('.metadata-value');
+            if (!label || !value) return;
 
-            if (label && value && updates[label.textContent.trim()]) {
-                const isLink = label.textContent.trim() === 'Автор:' ||
-                              label.textContent.trim() === 'Организация защиты:' ||
-                              label.textContent.trim() === 'Специальность:';
+            const labelText = label.textContent.trim();
 
-                value.textContent = updates[label.textContent.trim()];
-                if (isLink) {
-                    value.className = 'metadata-value link';
+            if (labelText === 'Автор:') {
+                value.innerHTML = '';
+                if (authorKey) {
+                    const link = document.createElement('a');
+                    link.href = `author-detail.html?id=${authorKey}`;
+                    link.className = 'metadata-value link';
+                    link.textContent = authorName;
+                    value.appendChild(link);
+                } else {
+                    value.textContent = authorName;
                 }
+            } else if (labelText === 'Организация защиты:') {
+                value.innerHTML = '';
+                if (orgKey) {
+                    const link = document.createElement('a');
+                    link.href = `organization-detail.html?id=${orgKey}`;
+                    link.className = 'metadata-value link';
+                    link.textContent = orgName;
+                    value.appendChild(link);
+                } else {
+                    value.textContent = orgName;
+                }
+            } else if (labelText === 'Год защиты:') {
+                value.textContent = defenseDate;
+            } else if (labelText === 'Диссертационный совет:') {
+                value.textContent = councilCode;
+            } else if (labelText === 'Специальность:') {
+                value.innerHTML = '';
+                if (specialtyCode !== 'Не указана') {
+                    const link = document.createElement('a');
+                    link.href = `dissertation.html?specialty_code=${encodeURIComponent(specialtyCode)}`;
+                    link.className = 'metadata-value link';
+                    link.textContent = specialtyCode;
+                    value.appendChild(link);
+                } else {
+                    value.textContent = specialtyCode;
+                }
+            } else if (labelText === 'Тип защиты:') {
+                value.textContent = type;
+            } else if (labelText === 'Добавлена:') {
+                value.textContent = created;
+            } else if (labelText === 'Обновлена:') {
+                value.textContent = updated;
             }
         });
     }
@@ -207,24 +238,6 @@ class DissertationDetailPage {
         if (title) {
             const params = new URLSearchParams({ keywords: title.slice(0, 50) });
             window.location.href = `dissertation.html?${params.toString()}`;
-        }
-    }
-
-    handleMetadataClick(element) {
-        const field = element.parentElement.querySelector('.metadata-label')?.textContent.trim();
-        const value = element.textContent.trim();
-
-        switch (field) {
-            case 'Автор:':
-                this.showInfoMessage('Переход к профилю автора в разработке');
-                break;
-            case 'Организация защиты:':
-                this.showInfoMessage('Переход к деталям организации в разработке');
-                break;
-            case 'Специальность:':
-                const params = new URLSearchParams({ specialty_code: value });
-                window.location.href = `dissertation.html?${params.toString()}`;
-                break;
         }
     }
 
