@@ -169,3 +169,19 @@ def export_dissertations(
             "Content-Disposition": f"attachment; filename={filename}"
         }
     )
+
+@app.get("/api/stats")
+def get_statistics():
+    return db.get_statistics()
+
+@app.get("/api/stats/years")
+def get_yearly_distribution():
+    return db.get_yearly_distribution()
+
+@app.get("/api/stats/authors")
+def get_author_stats():
+    return db.get_author_stats()
+
+@app.get("/api/stats/organizations")
+def get_organization_stats():
+    return db.get_organization_stats()
