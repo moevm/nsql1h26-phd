@@ -208,18 +208,58 @@ def export_dissertations(
         }
     )
 
+
 @app.get("/api/stats")
 def get_statistics():
-    return db.get_statistics()
+    result = db.get_statistics()
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="statistics not found"
+        )
+
+    return result
+
 
 @app.get("/api/stats/years")
 def get_yearly_distribution():
     return db.get_yearly_distribution()
 
+    result = db.get_statistics()
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="statistics not found"
+        )
+
+    return result
+
+
 @app.get("/api/stats/authors")
 def get_author_stats():
     return db.get_author_stats()
 
+    result = db.get_statistics()
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="statistics not found"
+        )
+
+    return result
+
+
 @app.get("/api/stats/organizations")
 def get_organization_stats():
-    return db.get_organization_stats()
+    result = db.get_organization_stats()
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="statistics not found"
+        )
+
+    return result
