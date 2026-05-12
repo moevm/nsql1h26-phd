@@ -41,11 +41,16 @@ class ApiClient {
     async getDissertations(filters = {}, page = 1, pageSize = 10) {
         const params = new URLSearchParams({
             page: page.toString(),
-            page_size: pageSize.toString(),
-            ...filters
+            page_size: pageSize.toString()
         });
 
-        return this.get(`/api/dissertations?${params}`);
+        Object.keys(filters).forEach(key => {
+            if (filters[key]) {
+                params.append(key, filters[key]);
+            }
+        });
+
+        return this.get(`/api/dissertations?${params.toString()}`);
     }
 
     async getDissertationDetails(dissId) {
@@ -111,30 +116,37 @@ class ApiClient {
     async exportDissertations(filters = {}, format = 'csv') {
         const params = new URLSearchParams();
 
-        if (filters.id) {
-            params.append('diss_id', filters.id);
-        }
-
-        params.append('export_format', format);
-
-        const response = await fetch(`/api/dissertations/export?${params}`, {
-            headers: {
-                'Accept': format === 'csv' ? 'text/csv' : 'application/json'
+        Object.keys(filters).forEach(key => {
+            if (filters[key]) {
+                params.append(key, filters[key]);
             }
         });
 
-        if (response.ok) {
+        params.append('export_format', format);
+
+        const url = `/api/export?${params}`;
+
+        try {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+            const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `dissertations_export.${format}`;
+            a.href = downloadUrl;
+            a.download = `dissertations.${format}`;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-        } else {
-            throw new Error(`Failed to export ${format}`);
+            window.URL.revokeObjectURL(downloadUrl);
+
+            return true;
+        } catch (error) {
+            console.error('Export failed:', error);
+            throw error;
         }
     }
 }

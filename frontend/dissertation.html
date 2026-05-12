@@ -5,19 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Поиск диссертаций - Диссертационная система</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dissertation.js"></script>
 </head>
 <body>
   <header class="header">
     <div class="header-inner" style="padding: 0 32px;">
       <div class="logo">Диссертационная система</div>
-      
+
       <nav class="nav">
         <a href="index.html" class="nav-link">Главная</a>
         <a href="dissertation.html" class="nav-link active">Диссертации</a>
         <a href="author-profile.html" class="nav-link">Авторы</a>
         <a href="organization-detail.html" class="nav-link active">Организации</a>
       </nav>
-      
+
       <div class="user-area">
       </div>
     </div>
@@ -33,9 +36,9 @@
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM13 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM13 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z"/></svg>
         Расширенный поиск
       </a>
-      
+
       <div class="sidebar-divider"></div>
-      
+
       <a href="#" class="sidebar-item">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/></svg>
         Аналитика
@@ -72,21 +75,28 @@
         </div>
         <div class="filter-field">
           <label class="filter-label">Организация защиты</label>
-          <input type="text" class="filter-input" placeholder="Начните вводить название...">
+          <input type="text" class="filter-input" placeholder="Полное название организации...">
         </div>
         <div class="filter-field">
           <label class="filter-label">Специальность</label>
-          <input type="text" class="filter-input" placeholder="Код или название...">
+          <input type="text" class="filter-input" placeholder="Полный код специальности...">
         </div>
         <div class="filter-field">
           <label class="filter-label">Автор</label>
-          <input type="text" class="filter-input" placeholder="ФИО автора...">
+          <input type="text" class="filter-input" placeholder="Полное ФИО автора...">
         </div>
         <div class="filter-field">
           <label class="filter-label">Статус обработки</label>
-          <div class="filter-select">
-            <span>Любой</span>
+          <div class="filter-select" style="position: relative;">
+            <span id="status-display">Любой</span>
             <span>▼</span>
+            <div class="status-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 0.375rem; margin-top: 0.25rem; z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <div class="status-option" data-value="">Любой</div>
+              <div class="status-option" data-value="pending">В обработке</div>
+              <div class="status-option" data-value="processing">Обрабатывается</div>
+              <div class="status-option" data-value="completed">Завершено</div>
+              <div class="status-option" data-value="error">Ошибка</div>
+            </div>
           </div>
         </div>
         <div class="filter-field">
@@ -126,9 +136,10 @@
         <div class="results-stats">
           <span class="results-count">Найдено: <strong>1,247</strong> записей</span>
           <select class="per-page-select">
-            <option>10 на странице</option>
-            <option>25 на странице</option>
-            <option>50 на странице</option>
+            <option value="5">5 на странице</option>
+            <option value="10" selected>10 на странице</option>
+            <option value="25">25 на странице</option>
+            <option value="50">50 на странице</option>
           </select>
         </div>
         <button class="btn-export">
