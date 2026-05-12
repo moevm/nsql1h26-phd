@@ -50,6 +50,8 @@ services:
       - ARANGO_PASSWORD=password
       - ARANGO_DATABASE=dissertation_db
       - PYTHONUNBUFFERED=1
+      - PARSE=true
+      - MAX_PAGES=3
     ports:
       - "8080:8080"
     working_dir: /app
