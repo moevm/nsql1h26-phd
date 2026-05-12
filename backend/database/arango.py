@@ -384,8 +384,95 @@ class DatabaseManager:
         return {"total": total, "data": data}
 
     def export_dissertations(self, filters, export_format="json"):
-        result = self.search_dissertations(filters, page=1, page_size=10000)
-        data = result["data"]
+        if not self.db:
+            self.connect()
+        bind_vars = {}
+        filter_parts = []
+        additional_lets = []
+
+        if "year_from" in filters:
+            filter_parts.append("LEFT(d.defense_date, 4) >= @year_from")
+            bind_vars["year_from"] = str(filters["year_from"])
+        if "year_to" in filters:
+            filter_parts.append("LEFT(d.defense_date, 4) <= @year_to")
+            bind_vars["year_to"] = str(filters["year_to"])
+        if "organization" in filters:
+            org_query = (
+                "LET org_doc = FIRST(FOR o IN has_organization FILTER "
+                "o._from == d._id FOR org IN organization FILTER "
+                "org._id == o._to RETURN org)"
+            )
+            additional_lets.append(org_query)
+            filter_parts.append("CONTAINS(LOWER(org_doc.full_name), LOWER(@org))")
+            bind_vars["org"] = filters["organization"]
+        if "specialty_code" in filters:
+            filter_parts.append("CONTAINS(LOWER(d.specialty_code), LOWER(@spec))")
+            bind_vars["spec"] = filters["specialty_code"]
+        if "processing_status" in filters:
+            filter_parts.append("d.processing_status == @status")
+            bind_vars["status"] = filters["processing_status"]
+        if "author_name" in filters:
+            author_query = (
+                "LET author_doc = FIRST(FOR w IN writes FILTER "
+                "w._to == d._id FOR a IN author FILTER a._id == w._from RETURN a)"
+            )
+            additional_lets.append(author_query)
+            filter_parts.append(
+                "CONTAINS(LOWER(author_doc.full_name), LOWER(@author_name))"
+            )
+            bind_vars["author_name"] = filters["author_name"]
+        if "keywords" in filters:
+            file_query = (
+                "LET file_doc = FIRST(FOR h IN has_file FILTER "
+                "h._from == d._id FOR f IN file FILTER f._id == h._to RETURN f)"
+            )
+            additional_lets.append(file_query)
+            kw = filters["keywords"]
+            keyword_filter = (
+                "(CONTAINS(LOWER(d.title), LOWER(@kw)) OR "
+                "(file_doc != null AND CONTAINS(LOWER(file_doc.autoref_text), "
+                "LOWER(@kw))))"
+            )
+            filter_parts.append(keyword_filter)
+            bind_vars["kw"] = kw
+
+        let_clause = " ".join(additional_lets) if additional_lets else ""
+        filter_clause = " FILTER " + " AND ".join(filter_parts) if filter_parts else ""
+
+        author_name_query = (
+            "FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author "
+            "FILTER a._id == w._from RETURN a.full_name)"
+        )
+        author_id_query = (
+            "FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author "
+            "FILTER a._id == w._from RETURN a._key)"
+        )
+        organization_name_query = (
+            "FIRST(FOR o IN has_organization FILTER o._from == d._id "
+            "FOR org IN organization FILTER org._id == o._to RETURN org.full_name)"
+        )
+        file_content_query = (
+            "FIRST(FOR h IN has_file FILTER h._from == d._id "
+            "FOR f IN file FILTER f._id == h._to RETURN f.autoref_text)"
+        )
+
+        data = list(
+            self.db.aql.execute(
+                f"""
+                FOR d IN {self.diss_col_name}
+                {let_clause}
+                {filter_clause}
+                RETURN MERGE(d, {{
+                    author_name: {author_name_query},
+                    author_id: {author_id_query},
+                    organization_name: {organization_name_query},
+                    file_content: {file_content_query}
+                }})
+            """,
+                bind_vars=bind_vars,
+            )
+        )
+
         if export_format == "csv":
             output = io.StringIO()
             if data:
@@ -394,6 +481,138 @@ class DatabaseManager:
                 writer.writerows(data)
             return output.getvalue()
         return json.dumps(data, ensure_ascii=False, indent=2)
+
+    def import_dissertations(self, data: str, import_format: str = "json"):
+        if not self.db:
+            self.connect()
+
+        if import_format == "csv":
+            reader = csv.DictReader(io.StringIO(data))
+            records = list(reader)
+        elif import_format == "json":
+            records = json.loads(data)
+            if isinstance(records, dict):
+                records = [records]
+        else:
+            raise ValueError("Unsupported import format. Use 'json' or 'csv'")
+
+        diss_coll = self.db.collection(self.diss_col_name)
+        author_coll = self.db.collection(self.author_col_name)
+        writes_coll = self.db.collection(self.writes_edge_name)
+        org_coll = self.db.collection(self.org_col_name)
+        has_org_coll = self.db.collection(self.has_org_edge_name)
+        file_coll = self.db.collection(self.file_col_name)
+        has_file_coll = self.db.collection(self.has_file_edge_name)
+
+        now = datetime.now(UTC).isoformat()
+        imported = 0
+
+        for item in records:
+            vak_url = item.get("vak_url", "").strip()
+            if not vak_url:
+                continue
+
+            diss_key = self._extract_dissertation_key(vak_url)
+
+            author_name = item.get("author_name", "").strip()
+            if author_name:
+                author_key = self._slugify_author_key(author_name)
+                if not author_coll.has(author_key):
+                    author_coll.insert({
+                        "_key": author_key,
+                        "full_name": author_name,
+                        "dissertations_count": 1
+                    })
+                else:
+                    self.db.aql.execute(
+                        "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH "
+                        "{ dissertations_count: a.dissertations_count + 1 } IN @@coll",
+                        bind_vars={"@coll": self.author_col_name, "key": author_key}
+                    )
+            else:
+                author_key = None
+
+            org_name = item.get("organization_name", "").strip()
+            if org_name:
+                org_key = self._slugify_org_key(org_name)
+                if not org_coll.has(org_key):
+                    org_coll.insert({
+                        "_key": org_key,
+                        "full_name": org_name,
+                        "address": "",
+                        "phone_number": "",
+                        "city": "",
+                        "country": "Россия",
+                        "created_at": now
+                    })
+            else:
+                org_key = None
+
+            defense_date = self._parse_date(item.get("defense_date", ""))
+            primary_pub = self._parse_date(item.get("primary_published_at", ""))
+            last_edited = self._parse_date(item.get("last_edited_at", ""))
+
+            diss_doc = {
+                "_key": diss_key,
+                "title": item.get("title", ""),
+                "type": item.get("type", ""),
+                "science_branch": item.get("science_branch", ""),
+                "defense_date": defense_date,
+                "primary_published_at": primary_pub,
+                "last_edited_at": last_edited,
+                "specialty_code": item.get("specialty_code", ""),
+                "defense_council_code": item.get("defense_council_code", ""),
+                "vak_url": vak_url,
+                "organization_advert_url": item.get("organization_advert_url", ""),
+                "processing_status": item.get("processing_status", "completed"),
+                "created_at": item.get("created_at", now),
+                "updated_at": item.get("updated_at", now)
+            }
+            diss_coll.insert(diss_doc, overwrite=True)
+
+            if author_key:
+                edge_key = f"{author_key}_{diss_key}"
+                edge_doc = {
+                    "_key": edge_key,
+                    "_from": f"{self.author_col_name}/{author_key}",
+                    "_to": f"{self.diss_col_name}/{diss_key}",
+                }
+                with contextlib.suppress(DocumentInsertError):
+                    writes_coll.insert(edge_doc, overwrite=True)
+
+            if org_key:
+                org_edge_key = f"{diss_key}_{org_key}"
+                org_edge_doc = {
+                    "_key": org_edge_key,
+                    "_from": f"{self.diss_col_name}/{diss_key}",
+                    "_to": f"{self.org_col_name}/{org_key}",
+                }
+                with contextlib.suppress(DocumentInsertError):
+                    has_org_coll.insert(org_edge_doc, overwrite=True)
+
+            file_content = item.get("file_content", "").strip()
+            if file_content:
+                file_key = f"{diss_key}_file"
+                file_doc = {
+                    "_key": file_key,
+                    "filename": item.get("file_filename", f"{diss_key}_autoref.pdf"),
+                    "autoref_text": file_content,
+                    "size_bytes": len(file_content.encode("utf-8"))
+                }
+                file_coll.insert(file_doc, overwrite=True)
+
+                has_file_edge_key = f"{diss_key}_{file_key}"
+                has_file_edge = {
+                    "_key": has_file_edge_key,
+                    "_from": f"{self.diss_col_name}/{diss_key}",
+                    "_to": f"{self.file_col_name}/{file_key}",
+                }
+                with contextlib.suppress(DocumentInsertError):
+                    has_file_coll.insert(has_file_edge, overwrite=True)
+
+            imported += 1
+
+        return {"imported": imported}
 
     def get_dissertation_details(self, diss_key):
         if not self.db:
@@ -560,9 +779,10 @@ class DatabaseManager:
                 'processing_status': dissertation.get('processing_status', ''),
                 'created_at': dissertation.get('created_at', ''),
                 'updated_at': dissertation.get('updated_at', ''),
+                'file_content': dissertation.get('file_content', ''),
             }
 
-            writer = csv.DictWriter(output, fieldnames=csv_data.keys())
+            writer = csv.DictWriter(output, fieldnames=list(csv_data.keys()))
             writer.writeheader()
             writer.writerow(csv_data)
             return output.getvalue()
