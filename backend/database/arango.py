@@ -341,6 +341,10 @@ class DatabaseManager:
             "FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author "
             "FILTER a._id == w._from RETURN a.full_name)"
         )
+        author_id_query = (
+            "FIRST(FOR w IN writes FILTER w._to == d._id FOR a IN author "
+            "FILTER a._id == w._from RETURN a._key)"
+        )
         organization_name_query = (
             "FIRST(FOR o IN has_organization FILTER o._from == d._id "
             "FOR org IN organization FILTER org._id == o._to RETURN org.full_name)"
@@ -356,6 +360,7 @@ class DatabaseManager:
                 LIMIT @offset, @limit
                 RETURN MERGE(d, {{
                     author_name: {author_name_query},
+                    author_id: {author_id_query},
                     organization_name: {organization_name_query}
                 }})
             """,
@@ -462,3 +467,72 @@ class DatabaseManager:
         bind_vars = {"org_coll": self.org_col_name, "key": org_id}
         cursor = self.db.aql.execute(query, bind_vars=bind_vars)
         return next(cursor, None)
+
+    def get_author_stats(self):
+        if not self.db:
+            self.connect()
+        query = """
+        FOR a IN author
+            LET cnt = COUNT(
+                FOR w IN writes
+                FILTER w._from == a._id
+                RETURN 1
+            )
+            RETURN { author_name: a.full_name, count: cnt }
+        """
+        return list(self.db.aql.execute(query))
+
+    def get_organization_stats(self):
+        if not self.db:
+            self.connect()
+        query = """
+        FOR o IN organization
+            LET cnt = COUNT(
+                FOR ho IN has_organization
+                FILTER ho._to == o._id
+                RETURN 1
+            )
+            RETURN { organization_name: o.full_name, count: cnt }
+        """
+        return list(self.db.aql.execute(query))
+
+    def get_yearly_distribution(self):
+        if not self.db:
+            self.connect()
+        query = """
+        FOR d IN @@diss
+            FILTER d.defense_date != null
+            LET year = LEFT(d.defense_date, 4)
+            COLLECT y = year WITH COUNT INTO cnt
+            SORT y
+            RETURN { year: y, count: cnt }
+        """
+        cursor = self.db.aql.execute(query, bind_vars={"@diss": self.diss_col_name})
+        years = []
+        counts = []
+        for entry in cursor:
+            if entry["year"].isdigit():
+                years.append(int(entry["year"]))
+                counts.append(entry["count"])
+        return {"years": years, "counts": counts}
+
+    def get_statistics(self):
+        if not self.db:
+            self.connect()
+        diss_total = self.db.collection(self.diss_col_name).count()
+        author_total = self.db.collection(self.author_col_name).count()
+        org_total = self.db.collection(self.org_col_name).count()
+        spec_query = """
+            RETURN LENGTH(
+                FOR d IN @@diss
+                    COLLECT spec = d.specialty_code
+                    RETURN spec
+            )
+        """
+        spec_total = next(self.db.aql.execute(spec_query, bind_vars={"@diss": self.diss_col_name}))
+        return {
+            "totalDissertations": diss_total,
+            "totalAuthors": author_total,
+            "totalOrganizations": org_total,
+            "totalSpecialties": spec_total
+        }
