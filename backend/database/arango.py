@@ -670,22 +670,79 @@ class DatabaseManager:
         return next(cursor, None)
 
     def get_organization_details(self, org_id):
-        if not self.db:
+        if not self.db: 
             self.connect()
         query = """
         LET o = DOCUMENT(CONCAT(@org_coll, '/', @key))
-        LET dissertations = (
-            FOR ho IN has_organization
-            FILTER ho._to == o._id
-            FOR d IN dissertation
-            FILTER d._id == ho._from
-            RETURN d
+        LET cnt = COUNT(
+            FOR ho IN has_organization FILTER ho._to == o._id RETURN 1
         )
-        RETURN MERGE(o, { dissertations: dissertations })
+        RETURN MERGE(o, { dissertations_count: cnt })
         """
         bind_vars = {"org_coll": self.org_col_name, "key": org_id}
         cursor = self.db.aql.execute(query, bind_vars=bind_vars)
         return next(cursor, None)
+
+    def get_organization_dissertations(
+        self, org_id, page=1, page_size=20, year=None, specialty=None, search=None
+    ):
+        if not self.db:
+            self.connect()
+
+        org_full_id = f"{self.org_col_name}/{org_id}"
+        bind_vars = {
+            "org_full_id": org_full_id,
+            "offset": (page - 1) * page_size,
+            "limit": page_size,
+        }
+
+        filter_ho = "ho._to == @org_full_id"
+
+        filter_d_parts = []
+        if year:
+            filter_d_parts.append("LEFT(d.defense_date, 4) == @year")
+            bind_vars["year"] = str(year)
+        if specialty:
+            filter_d_parts.append("CONTAINS(LOWER(d.specialty_code), LOWER(@specialty))")
+            bind_vars["specialty"] = specialty
+        if search:
+            filter_d_parts.append("CONTAINS(LOWER(d.title), LOWER(@search))")
+            bind_vars["search"] = search
+
+        filter_d = " AND ".join(filter_d_parts) if filter_d_parts else "true"
+
+        data_query = (
+            f"FOR ho IN {self.has_org_edge_name} "
+            f"FILTER {filter_ho} "
+            f"FOR d IN {self.diss_col_name} "
+            f"FILTER d._id == ho._from AND {filter_d} "
+            f"SORT d.defense_date DESC "
+            f"LIMIT @offset, @limit "
+            f"RETURN MERGE(d, {{ author_name: FIRST( FOR w IN {self.writes_edge_name} "
+            f"FILTER w._to == d._id FOR a IN {self.author_col_name} "
+            f"FILTER a._id == w._from RETURN a.full_name ) }} )"
+        )
+
+        count_query = (
+            f"RETURN COUNT( FOR ho IN {self.has_org_edge_name} "
+            f"FILTER {filter_ho} "
+            f"FOR d IN {self.diss_col_name} "
+            f"FILTER d._id == ho._from AND {filter_d} RETURN 1 )"
+        )
+
+        data = list(self.db.aql.execute(data_query, bind_vars=bind_vars))
+
+        count_bind = {"org_full_id": org_full_id}
+        if year:
+            count_bind["year"] = str(year)
+        if specialty:
+            count_bind["specialty"] = specialty
+        if search:
+            count_bind["search"] = search
+
+        total = next(self.db.aql.execute(count_query, bind_vars=count_bind))
+
+        return {"total": total, "data": data}
 
     def get_author_stats(self):
         if not self.db:
@@ -788,3 +845,22 @@ class DatabaseManager:
             return output.getvalue()
 
         return json.dumps(dissertation, ensure_ascii=False, indent=2, default=str)
+    
+    def get_all_organizations(self, page=1, page_size=20):
+        if not self.db:
+            self.connect()
+        query = """
+            FOR o IN organization
+                LET cnt = COUNT(
+                    FOR ho IN has_organization
+                    FILTER ho._to == o._id
+                    RETURN 1
+                )
+                SORT o.full_name ASC
+                LIMIT @offset, @limit
+                RETURN MERGE(o, {dissertations_count: cnt})
+        """
+        bind_vars = {"offset": (page - 1) * page_size, "limit": page_size}
+        data = list(self.db.aql.execute(query, bind_vars=bind_vars))
+        total = self.db.collection(self.org_col_name).count()
+        return {"total": total, "data": data}
