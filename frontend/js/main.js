@@ -133,12 +133,12 @@ class MainPage {
 
         const title = dissertation.title || 'Без названия';
         const author = dissertation.author_name || 'Неизвестный автор';
-        const year = dissertation.defense_date ? new Date(dissertation.defense_date).getFullYear() : 'Неизвестный год';
+        const defenseDate = dissertation.defense_date ? new Date(dissertation.defense_date).toLocaleDateString('ru-RU') : 'Неизвестная дата';
 
         li.innerHTML = `
             <div>
                 <div class="dissertation-title">${this.escapeHtml(title)}</div>
-                <div class="dissertation-meta">${this.escapeHtml(author)} • ${year}</div>
+                <div class="dissertation-meta">${this.escapeHtml(author)} • ${defenseDate}</div>
             </div>
             <span>→</span>
         `;

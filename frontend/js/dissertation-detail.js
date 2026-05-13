@@ -77,7 +77,7 @@ class DissertationDetailPage {
         const authorKey = dissertation.author?._key || dissertation.author_id || '';
         const orgName = dissertation.organization?.full_name || dissertation.organization_name || 'Не указана';
         const orgKey = dissertation.organization?._key || dissertation.organization_id || '';
-        const defenseDate = dissertation.defense_date ? new Date(dissertation.defense_date).getFullYear() : 'Не указан';
+        const defenseDate = dissertation.defense_date ? new Date(dissertation.defense_date).toLocaleDateString('ru-RU') : 'Не указана';
         const councilCode = dissertation.defense_council_code || 'Не указан';
         const specialtyCode = dissertation.specialty_code || 'Не указана';
         const type = dissertation.type || 'ВАК';
@@ -114,7 +114,7 @@ class DissertationDetailPage {
                 } else {
                     value.textContent = orgName;
                 }
-            } else if (labelText === 'Год защиты:') {
+            } else if (labelText === 'Дата защиты:') {
                 value.textContent = defenseDate;
             } else if (labelText === 'Диссертационный совет:') {
                 value.textContent = councilCode;

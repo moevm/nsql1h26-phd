@@ -513,40 +513,95 @@ class DatabaseManager:
                 continue
 
             diss_key = self._extract_dissertation_key(vak_url)
+            diss_exists = diss_coll.has(diss_key)
+
+            old_author_key = None
+            old_org_key = None
+
+            if diss_exists:
+                old_writes = list(self.db.aql.execute(
+                    f"FOR w IN {self.writes_edge_name} FILTER w._to == @diss_id RETURN w",
+                    bind_vars={"diss_id": f"{self.diss_col_name}/{diss_key}"}
+                ))
+                if old_writes:
+                    old_author_key = old_writes[0]["_from"].split("/")[-1]
+
+                old_org_edges = list(self.db.aql.execute(
+                    f"FOR ho IN {self.has_org_edge_name} FILTER ho._from == @diss_id RETURN ho",
+                    bind_vars={"diss_id": f"{self.diss_col_name}/{diss_key}"}
+                ))
+                if old_org_edges:
+                    old_org_key = old_org_edges[0]["_to"].split("/")[-1]
+
+                self.db.aql.execute(
+                    f"FOR w IN {self.writes_edge_name} FILTER w._to == @diss_id REMOVE w IN {self.writes_edge_name}",
+                    bind_vars={"diss_id": f"{self.diss_col_name}/{diss_key}"}
+                )
+                self.db.aql.execute(
+                    f"FOR ho IN {self.has_org_edge_name} FILTER ho._from == @diss_id REMOVE ho IN {self.has_org_edge_name}",
+                    bind_vars={"diss_id": f"{self.diss_col_name}/{diss_key}"}
+                )
+                self.db.aql.execute(
+                    f"FOR hf IN {self.has_file_edge_name} FILTER hf._from == @diss_id REMOVE hf IN {self.has_file_edge_name}",
+                    bind_vars={"diss_id": f"{self.diss_col_name}/{diss_key}"}
+                )
+                file_key = f"{diss_key}_file"
+                if file_coll.has(file_key):
+                    file_coll.delete(file_key)
 
             author_name = item.get("author_name", "").strip()
+            author_key = None
             if author_name:
                 author_key = self._slugify_author_key(author_name)
-                if not author_coll.has(author_key):
+                if author_coll.has(author_key):
+                    self.db.aql.execute(
+                        "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH {full_name: @name} IN @@coll",
+                        bind_vars={"@coll": self.author_col_name, "key": author_key, "name": author_name}
+                    )
+                    if not diss_exists or old_author_key != author_key:
+                        self.db.aql.execute(
+                            "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH {dissertations_count: a.dissertations_count + 1} IN @@coll",
+                            bind_vars={"@coll": self.author_col_name, "key": author_key}
+                        )
+                else:
                     author_coll.insert({
                         "_key": author_key,
                         "full_name": author_name,
                         "dissertations_count": 1
                     })
-                else:
+
+                if diss_exists and old_author_key and old_author_key != author_key:
                     self.db.aql.execute(
-                        "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH "
-                        "{ dissertations_count: a.dissertations_count + 1 } IN @@coll",
-                        bind_vars={"@coll": self.author_col_name, "key": author_key}
+                        "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH {dissertations_count: a.dissertations_count - 1} IN @@coll",
+                        bind_vars={"@coll": self.author_col_name, "key": old_author_key}
                     )
-            else:
-                author_key = None
 
             org_name = item.get("organization_name", "").strip()
+            org_key = None
             if org_name:
                 org_key = self._slugify_org_key(org_name)
-                if not org_coll.has(org_key):
+                if org_coll.has(org_key):
+                    self.db.aql.execute(
+                        "FOR o IN @@coll FILTER o._key == @key UPDATE o WITH {full_name: @name, address: @address, city: @city, country: @country} IN @@coll",
+                        bind_vars={
+                            "@coll": self.org_col_name,
+                            "key": org_key,
+                            "name": org_name,
+                            "address": item.get("address", ""),
+                            "city": item.get("city", ""),
+                            "country": item.get("country", "Россия")
+                        }
+                    )
+                else:
                     org_coll.insert({
                         "_key": org_key,
                         "full_name": org_name,
-                        "address": "",
-                        "phone_number": "",
-                        "city": "",
-                        "country": "Россия",
+                        "address": item.get("address", ""),
+                        "phone_number": item.get("phone_number", ""),
+                        "city": item.get("city", ""),
+                        "country": item.get("country", "Россия"),
                         "created_at": now
                     })
-            else:
-                org_key = None
 
             defense_date = self._parse_date(item.get("defense_date", ""))
             primary_pub = self._parse_date(item.get("primary_published_at", ""))
@@ -680,7 +735,14 @@ class DatabaseManager:
             FILTER w._from == a._id
             FOR d IN dissertation
             FILTER d._id == w._to
-            RETURN d
+            LET org = FIRST(
+                FOR ho IN has_organization
+                FILTER ho._from == d._id
+                FOR o IN organization
+                FILTER o._id == ho._to
+                RETURN o.full_name
+            )
+            RETURN MERGE(d, {organization_name: org})
         )
         RETURN MERGE(a, { dissertations: dissertations })
         """

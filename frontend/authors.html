@@ -34,10 +34,6 @@
         Расширенный поиск
       </a>
       <div class="sidebar-divider"></div>
-      <a href="#" class="sidebar-item">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/></svg>
-        Аналитика
-      </a>
     </div>
   </aside>
 
@@ -50,11 +46,19 @@
         <div class="results-stats">
           <span class="results-count">Найдено: <strong>0</strong> авторов</span>
           <select class="per-page-select">
-            <option value="10">10 на странице</option>
-            <option value="20" selected>20 на странице</option>
+            <option value="10" selected>10 на странице</option>
+            <option value="20">20 на странице</option>
             <option value="50">50 на странице</option>
             <option value="100">100 на странице</option>
           </select>
+        </div>
+        <div class="results-actions">
+          <button class="btn-create" id="create-author-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="white">
+              <path d="M7 1v12M1 7h12v2H1z"/>
+            </svg>
+            Создать автора
+          </button>
         </div>
       </div>
 
@@ -64,7 +68,7 @@
             <tr>
               <th>ФИО автора</th>
               <th>Количество диссертаций</th>
-              <th></th>
+              <th>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -76,5 +80,45 @@
       </div>
     </div>
   </main>
+
+  <div id="author-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="author-modal-title">Создание автора</h2>
+        <button class="modal-close" onclick="closeAuthorModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="author-form">
+          <div class="form-grid">
+            <div class="form-field full-width">
+              <label class="form-label">ФИО автора *</label>
+              <input type="text" name="full_name" class="form-input" required>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeAuthorModal()">Отмена</button>
+        <button type="button" class="btn-primary" onclick="saveAuthor()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="author-delete-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Подтверждение удаления</h2>
+        <button class="modal-close" onclick="closeAuthorDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Вы уверены, что хотите удалить автора "<span id="delete-author-name"></span>"?</p>
+        <p class="warning-text">Это действие нельзя отменить.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeAuthorDeleteModal()">Отмена</button>
+        <button type="button" class="btn-danger" onclick="confirmAuthorDelete()">Удалить</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

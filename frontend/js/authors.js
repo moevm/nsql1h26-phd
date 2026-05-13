@@ -3,6 +3,8 @@ class AuthorsPage {
         this.currentPage = 1;
         this.pageSize = 10;
         this.totalResults = 0;
+        this.currentEditingId = null;
+        this.currentDeleteId = null;
         this.init();
     }
 
@@ -19,6 +21,11 @@ class AuthorsPage {
                 this.currentPage = 1;
                 this.loadAuthors();
             });
+        }
+
+        const createBtn = document.getElementById('create-author-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => this.openCreateModal());
         }
     }
 
@@ -55,7 +62,12 @@ class AuthorsPage {
             tr.innerHTML = `
                 <td><a href="author-detail.html?id=${author._key}" class="dissertation-title">${Utils.escapeHtml(name)}</a></td>
                 <td>${count}</td>
-                <td><button class="btn-view-details" onclick="window.location.href='author-detail.html?id=${author._key}'">→</button></td>
+                <td>
+                    <div class="action-buttons-cell">
+                        <button class="btn-edit" onclick="authorsPage.openEditModal('${author._key}')">✏️</button>
+                        <button class="btn-delete" onclick="authorsPage.openDeleteModal('${author._key}', '${Utils.escapeHtml(name).replace(/'/g, "&#39;")}')">🗑️</button>
+                    </div>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -120,8 +132,83 @@ class AuthorsPage {
         const tbody = document.querySelector('.results-table tbody');
         if (tbody) tbody.style.opacity = '1';
     }
+
+    openCreateModal() {
+        this.currentEditingId = null;
+        document.getElementById('author-modal-title').textContent = 'Создание автора';
+        document.getElementById('author-form').reset();
+        document.getElementById('author-modal').style.display = 'flex';
+    }
+
+    async openEditModal(authorId) {
+        try {
+            const author = await api.getAuthorDetails(authorId);
+            this.currentEditingId = authorId;
+            document.getElementById('author-modal-title').textContent = 'Редактирование автора';
+            document.getElementById('author-form').querySelector('[name="full_name"]').value = author.full_name || '';
+            document.getElementById('author-modal').style.display = 'flex';
+        } catch (error) {
+            console.error('Failed to load author for editing:', error);
+            Utils.showErrorMessage('Не удалось загрузить данные автора');
+        }
+    }
+
+    async saveAuthor() {
+        const form = document.getElementById('author-form');
+        const fullName = form.querySelector('[name="full_name"]').value.trim();
+        if (!fullName) {
+            Utils.showErrorMessage('ФИО автора обязательно');
+            return;
+        }
+        try {
+            if (this.currentEditingId) {
+                await api.updateAuthor(this.currentEditingId, { full_name: fullName });
+                Utils.showMessage('Автор обновлён', 'success');
+            } else {
+                await api.createAuthor({ full_name: fullName });
+                Utils.showMessage('Автор создан', 'success');
+            }
+            this.closeAuthorModal();
+            await this.loadAuthors();
+        } catch (error) {
+            console.error('Failed to save author:', error);
+            Utils.showErrorMessage('Не удалось сохранить автора: ' + (error.message || ''));
+        }
+    }
+
+    openDeleteModal(authorId, name) {
+        this.currentDeleteId = authorId;
+        document.getElementById('delete-author-name').textContent = name;
+        document.getElementById('author-delete-modal').style.display = 'flex';
+    }
+
+    async confirmAuthorDelete() {
+        try {
+            await api.deleteAuthor(this.currentDeleteId);
+            Utils.showMessage('Автор удалён', 'success');
+            this.closeAuthorDeleteModal();
+            await this.loadAuthors();
+        } catch (error) {
+            console.error('Failed to delete author:', error);
+            Utils.showErrorMessage('Не удалось удалить автора: ' + error.message);
+        }
+    }
+
+    closeAuthorModal() {
+        document.getElementById('author-modal').style.display = 'none';
+    }
+
+    closeAuthorDeleteModal() {
+        document.getElementById('author-delete-modal').style.display = 'none';
+        this.currentDeleteId = null;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new AuthorsPage();
+    window.authorsPage = new AuthorsPage();
 });
+
+window.closeAuthorModal = () => window.authorsPage.closeAuthorModal();
+window.closeAuthorDeleteModal = () => window.authorsPage.closeAuthorDeleteModal();
+window.saveAuthor = () => window.authorsPage.saveAuthor();
+window.confirmAuthorDelete = () => window.authorsPage.confirmAuthorDelete();

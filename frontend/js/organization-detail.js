@@ -44,8 +44,6 @@ class OrganizationDetailPage {
         try {
             const org = await api.getOrganizationDetails(this.orgId);
             document.querySelector('.org-name').textContent = org.full_name || '—';
-            const loc = document.querySelector('.org-location');
-            if (loc) loc.innerHTML = `📍 ${org.city || ''}${org.country ? ', ' + org.country : ''}`;
             document.querySelector('.stat-square-number').textContent = org.dissertations_count || 0;
         } catch (e) { Utils.showErrorMessage('Ошибка загрузки данных организации'); }
     }
@@ -70,10 +68,11 @@ class OrganizationDetailPage {
         if (!data?.length) { tbody.innerHTML = '<tr><td colspan="4">Нет диссертаций</td></tr>'; return; }
         data.forEach(diss => {
             const tr = document.createElement('tr');
+            const defenseDate = diss.defense_date ? new Date(diss.defense_date).toLocaleDateString('ru-RU') : '—';
             tr.innerHTML = `
                 <td><a href="dissertation-detail.html?id=${diss._key}" class="org-diss-link">${Utils.escapeHtml(diss.title||'—')}</a></td>
                 <td>${Utils.escapeHtml(diss.author_name||'—')}</td>
-                <td>${diss.defense_date?.substring(0,4)||'—'}</td>
+                <td>${defenseDate}</td>
                 <td><a href="dissertation.html?specialty_code=${encodeURIComponent(diss.specialty_code || '')}" class="org-diss-link">${Utils.escapeHtml(diss.specialty_code || '—')}</a></td>
             `;
             tbody.appendChild(tr);

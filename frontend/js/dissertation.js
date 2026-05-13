@@ -294,14 +294,14 @@ class DissertationPage {
 
         const title = dissertation.title || 'Без названия';
         const author = dissertation.author_name || 'Неизвестный автор';
-        const year = dissertation.defense_date ? new Date(dissertation.defense_date).getFullYear() : 'Неизвестен';
+        const defenseDate = dissertation.defense_date ? new Date(dissertation.defense_date).toLocaleDateString('ru-RU') : 'Неизвестна';
         const organization = dissertation.organization_name || 'Неизвестна';
         const specialty = dissertation.specialty_code || 'Не указана';
 
         tr.innerHTML = `
             <td><a href="dissertation-detail.html?id=${dissertation._key}" class="dissertation-title">${this.escapeHtml(title)}</a></td>
             <td class="author-name">${this.escapeHtml(author)}</td>
-            <td class="year-value">${year}</td>
+            <td class="year-value">${defenseDate}</td>
             <td class="org-name">${this.escapeHtml(organization)}</td>
             <td class="spec-name">${this.escapeHtml(specialty)}</td>
             <td>

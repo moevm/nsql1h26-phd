@@ -36,11 +36,11 @@ class AuthorDetailPage {
         dissertations.forEach(diss => {
             const tr = document.createElement('tr');
             const title = diss.title || 'Без названия';
-            const year = diss.defense_date ? new Date(diss.defense_date).getFullYear() : '—';
+            const defenseDate = diss.defense_date ? new Date(diss.defense_date).toLocaleDateString('ru-RU') : '—';
             const org = diss.organization_name || '—';
             tr.innerHTML = `
                 <td><a href="dissertation-detail.html?id=${diss._key}" class="dissertation-link">${Utils.escapeHtml(title)}</a></td>
-                <td>${year}</td>
+                <td>${defenseDate}</td>
                 <td>${Utils.escapeHtml(org)}</td>
             `;
             tbody.appendChild(tr);
