@@ -883,3 +883,249 @@ class DatabaseManager:
         data = list(self.db.aql.execute(query, bind_vars=bind_vars))
         total = self.db.collection(self.org_col_name).count()
         return {"total": total, "data": data}
+
+    def create_author(self, data: dict):
+        if not self.db:
+            self.connect()
+        full_name = data.get("full_name", "").strip()
+        if not full_name:
+            raise ValueError("full_name is required")
+        author_key = self._slugify_author_key(full_name)
+        author_coll = self.db.collection(self.author_col_name)
+        if author_coll.has(author_key):
+            raise ValueError(f"Author with key '{author_key}' already exists")
+        doc = {
+            "_key": author_key,
+            "full_name": full_name,
+            "dissertations_count": 0,
+        }
+        author_coll.insert(doc)
+        return author_coll.get(author_key)
+
+    def update_author(self, author_id: str, data: dict):
+        if not self.db:
+            self.connect()
+        author_coll = self.db.collection(self.author_col_name)
+        if not author_coll.has(author_id):
+            raise ValueError(f"Author '{author_id}' not found")
+        updates = {k: v for k, v in data.items() if k != "_key"}
+        if updates:
+            self.db.aql.execute(
+                "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH @fields IN @@coll",
+                bind_vars={"@coll": self.author_col_name, "key": author_id, "fields": updates}
+            )
+        return author_coll.get(author_id)
+
+    def delete_author(self, author_id: str):
+        if not self.db:
+            self.connect()
+        author_coll = self.db.collection(self.author_col_name)
+        if not author_coll.has(author_id):
+            raise ValueError(f"Author '{author_id}' not found")
+        self.db.aql.execute(
+            "FOR w IN writes FILTER w._from == CONCAT(@col, '/', @key) REMOVE w IN writes",
+            bind_vars={"col": self.author_col_name, "key": author_id}
+        )
+        author_coll.delete(author_id)
+        return {"deleted": author_id}
+
+    def create_organization(self, data: dict):
+        if not self.db:
+            self.connect()
+        full_name = data.get("full_name", "").strip()
+        if not full_name:
+            raise ValueError("full_name is required")
+        org_key = self._slugify_org_key(full_name)
+        org_coll = self.db.collection(self.org_col_name)
+        if org_coll.has(org_key):
+            raise ValueError(f"Organization with key '{org_key}' already exists")
+        now = datetime.now(UTC).isoformat()
+        doc = {
+            "_key": org_key,
+            "full_name": full_name,
+            "address": data.get("address", ""),
+            "phone_number": data.get("phone_number", ""),
+            "city": data.get("city", ""),
+            "country": data.get("country", "Россия"),
+            "created_at": now,
+        }
+        org_coll.insert(doc)
+        return org_coll.get(org_key)
+
+    def update_organization(self, org_id: str, data: dict):
+        if not self.db:
+            self.connect()
+        org_coll = self.db.collection(self.org_col_name)
+        if not org_coll.has(org_id):
+            raise ValueError(f"Organization '{org_id}' not found")
+        updates = {k: v for k, v in data.items() if k != "_key"}
+        if updates:
+            self.db.aql.execute(
+                "FOR o IN @@coll FILTER o._key == @key UPDATE o WITH @fields IN @@coll",
+                bind_vars={"@coll": self.org_col_name, "key": org_id, "fields": updates}
+            )
+        return org_coll.get(org_id)
+
+    def delete_organization(self, org_id: str):
+        if not self.db:
+            self.connect()
+        org_coll = self.db.collection(self.org_col_name)
+        if not org_coll.has(org_id):
+            raise ValueError(f"Organization '{org_id}' not found")
+        self.db.aql.execute(
+            "FOR ho IN has_organization FILTER ho._to == CONCAT(@col, '/', @key) REMOVE ho IN has_organization",
+            bind_vars={"col": self.org_col_name, "key": org_id}
+        )
+        org_coll.delete(org_id)
+        return {"deleted": org_id}
+
+    def create_dissertation(self, data: dict):
+        if not self.db:
+            self.connect()
+        vak_url = data.get("vak_url", "").strip()
+        if not vak_url:
+            raise ValueError("vak_url is required")
+        diss_key = self._extract_dissertation_key(vak_url)
+        diss_coll = self.db.collection(self.diss_col_name)
+        if diss_coll.has(diss_key):
+            raise ValueError(f"Dissertation with key '{diss_key}' already exists")
+        now = datetime.now(UTC).isoformat()
+
+        author_name = data.get("author_name", "").strip()
+        if author_name:
+            author_coll = self.db.collection(self.author_col_name)
+            existing = list(self.db.aql.execute(
+                "FOR a IN @@coll FILTER a.full_name == @name RETURN a",
+                bind_vars={"@coll": self.author_col_name, "name": author_name}
+            ))
+            if existing:
+                author_key = existing[0]["_key"]
+                self.db.aql.execute(
+                    "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH { dissertations_count: a.dissertations_count + 1 } IN @@coll",
+                    bind_vars={"@coll": self.author_col_name, "key": author_key}
+                )
+            else:
+                author_key = self._slugify_author_key(author_name)
+                author_coll.insert({
+                    "_key": author_key,
+                    "full_name": author_name,
+                    "dissertations_count": 1
+                })
+        else:
+            author_key = None
+
+        org_name = data.get("organization_name", "").strip()
+        if org_name:
+            org_coll = self.db.collection(self.org_col_name)
+            existing_org = list(self.db.aql.execute(
+                "FOR o IN @@coll FILTER o.full_name == @name RETURN o",
+                bind_vars={"@coll": self.org_col_name, "name": org_name}
+            ))
+            if existing_org:
+                org_key = existing_org[0]["_key"]
+            else:
+                org_key = self._slugify_org_key(org_name)
+                org_coll.insert({
+                    "_key": org_key,
+                    "full_name": org_name,
+                    "address": "",
+                    "phone_number": "",
+                    "city": "",
+                    "country": "Россия",
+                    "created_at": now
+                })
+        else:
+            org_key = None
+
+        diss_doc = {
+            "_key": diss_key,
+            "title": data.get("title", ""),
+            "type": data.get("type", ""),
+            "science_branch": data.get("science_branch", ""),
+            "defense_date": self._parse_date(data.get("defense_date", "")),
+            "primary_published_at": self._parse_date(data.get("primary_published_at", "")),
+            "last_edited_at": self._parse_date(data.get("last_edited_at", "")),
+            "specialty_code": data.get("specialty_code", ""),
+            "defense_council_code": data.get("defense_council_code", ""),
+            "vak_url": vak_url,
+            "organization_advert_url": data.get("organization_advert_url", ""),
+            "processing_status": data.get("processing_status", "completed"),
+            "created_at": now,
+            "updated_at": now,
+        }
+        diss_coll.insert(diss_doc)
+
+        if author_key:
+            writes_coll = self.db.collection(self.writes_edge_name)
+            edge_key = f"{author_key}_{diss_key}"
+            edge_doc = {
+                "_key": edge_key,
+                "_from": f"{self.author_col_name}/{author_key}",
+                "_to": f"{self.diss_col_name}/{diss_key}",
+            }
+            with contextlib.suppress(DocumentInsertError):
+                writes_coll.insert(edge_doc, overwrite=True)
+
+        if org_key:
+            has_org_coll = self.db.collection(self.has_org_edge_name)
+            org_edge_key = f"{diss_key}_{org_key}"
+            org_edge_doc = {
+                "_key": org_edge_key,
+                "_from": f"{self.diss_col_name}/{diss_key}",
+                "_to": f"{self.org_col_name}/{org_key}",
+            }
+            with contextlib.suppress(DocumentInsertError):
+                has_org_coll.insert(org_edge_doc, overwrite=True)
+
+        return diss_coll.get(diss_key)
+
+    def update_dissertation(self, diss_id: str, data: dict):
+        if not self.db:
+            self.connect()
+        diss_coll = self.db.collection(self.diss_col_name)
+        if not diss_coll.has(diss_id):
+            raise ValueError(f"Dissertation '{diss_id}' not found")
+        updates = {}
+        for field in ["title", "type", "science_branch", "specialty_code",
+                      "defense_council_code", "vak_url", "organization_advert_url",
+                      "processing_status"]:
+            if field in data:
+                updates[field] = data[field]
+        if "defense_date" in data:
+            updates["defense_date"] = self._parse_date(data["defense_date"])
+        if "primary_published_at" in data:
+            updates["primary_published_at"] = self._parse_date(data["primary_published_at"])
+        if "last_edited_at" in data:
+            updates["last_edited_at"] = self._parse_date(data["last_edited_at"])
+        updates["updated_at"] = datetime.now(UTC).isoformat()
+        if updates:
+            self.db.aql.execute(
+                "FOR d IN @@coll FILTER d._key == @key UPDATE d WITH @fields IN @@coll",
+                bind_vars={"@coll": self.diss_col_name, "key": diss_id, "fields": updates}
+            )
+        return diss_coll.get(diss_id)
+
+    def delete_dissertation(self, diss_id: str):
+        if not self.db:
+            self.connect()
+        diss_coll = self.db.collection(self.diss_col_name)
+        if not diss_coll.has(diss_id):
+            raise ValueError(f"Dissertation '{diss_id}' not found")
+        self.db.aql.execute(
+            "FOR w IN writes FILTER w._to == CONCAT(@col, '/', @key) REMOVE w IN writes",
+            bind_vars={"col": self.diss_col_name, "key": diss_id}
+        )
+        self.db.aql.execute(
+            "FOR ho IN has_organization FILTER ho._from == CONCAT(@col, '/', @key) REMOVE ho IN has_organization",
+            bind_vars={"col": self.diss_col_name, "key": diss_id}
+        )
+        self.db.aql.execute(
+            "FOR hf IN has_file FILTER hf._from == CONCAT(@col, '/', @key) REMOVE hf IN has_file",
+            bind_vars={"col": self.diss_col_name, "key": diss_id}
+        )
+        file_coll = self.db.collection(self.file_col_name)
+        file_key = f"{diss_id}_file"
+        if file_coll.has(file_key):
+            file_coll.delete(file_key)
+        diss_coll.delete(diss_id)
+        return {"deleted": diss_id}
