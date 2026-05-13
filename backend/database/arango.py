@@ -689,7 +689,7 @@ class DatabaseManager:
         return next(cursor, None)
 
     def get_organization_details(self, org_id):
-        if not self.db: 
+        if not self.db:
             self.connect()
         query = """
         LET o = DOCUMENT(CONCAT(@org_coll, '/', @key))
@@ -722,7 +722,9 @@ class DatabaseManager:
             filter_d_parts.append("LEFT(d.defense_date, 4) == @year")
             bind_vars["year"] = str(year)
         if specialty:
-            filter_d_parts.append("CONTAINS(LOWER(d.specialty_code), LOWER(@specialty))")
+            filter_d_parts.append(
+                "CONTAINS(LOWER(d.specialty_code), LOWER(@specialty))"
+            )
             bind_vars["specialty"] = specialty
         if search:
             filter_d_parts.append("CONTAINS(LOWER(d.title), LOWER(@search))")
@@ -815,7 +817,11 @@ class DatabaseManager:
             FILTER cnt > 0
             SORT cnt DESC
             LIMIT @limit
-            RETURN {{ organization_key: o._key, organization_name: o.full_name, count: cnt }}
+            RETURN {{
+                organization_key: o._key,
+                organization_name: o.full_name,
+                count: cnt
+            }}
         """
         return list(self.db.aql.execute(query, bind_vars=bind_vars))
 
@@ -852,7 +858,9 @@ class DatabaseManager:
                     RETURN spec
             )
         """
-        spec_total = next(self.db.aql.execute(spec_query, bind_vars={"@diss": self.diss_col_name}))
+        spec_total = next(
+            self.db.aql.execute(spec_query, bind_vars={"@diss": self.diss_col_name})
+        )
         return {
             "totalDissertations": diss_total,
             "totalAuthors": author_total,
@@ -892,7 +900,7 @@ class DatabaseManager:
             return output.getvalue()
 
         return json.dumps(dissertation, ensure_ascii=False, indent=2, default=str)
-    
+
     def get_all_organizations(self, page=1, page_size=20):
         if not self.db:
             self.connect()
@@ -940,7 +948,11 @@ class DatabaseManager:
         if updates:
             self.db.aql.execute(
                 "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH @fields IN @@coll",
-                bind_vars={"@coll": self.author_col_name, "key": author_id, "fields": updates}
+                bind_vars={
+                    "@coll": self.author_col_name,
+                    "key": author_id,
+                    "fields": updates
+                }
             )
         return author_coll.get(author_id)
 
@@ -951,7 +963,8 @@ class DatabaseManager:
         if not author_coll.has(author_id):
             raise ValueError(f"Author '{author_id}' not found")
         self.db.aql.execute(
-            "FOR w IN writes FILTER w._from == CONCAT(@col, '/', @key) REMOVE w IN writes",
+            "FOR w IN writes FILTER w._from == CONCAT(@col, '/', @key) "
+            "REMOVE w IN writes",
             bind_vars={"col": self.author_col_name, "key": author_id}
         )
         author_coll.delete(author_id)
@@ -1001,7 +1014,8 @@ class DatabaseManager:
         if not org_coll.has(org_id):
             raise ValueError(f"Organization '{org_id}' not found")
         self.db.aql.execute(
-            "FOR ho IN has_organization FILTER ho._to == CONCAT(@col, '/', @key) REMOVE ho IN has_organization",
+            "FOR ho IN has_organization FILTER ho._to == CONCAT(@col, '/', @key) "
+            "REMOVE ho IN has_organization",
             bind_vars={"col": self.org_col_name, "key": org_id}
         )
         org_coll.delete(org_id)
@@ -1029,7 +1043,8 @@ class DatabaseManager:
             if existing:
                 author_key = existing[0]["_key"]
                 self.db.aql.execute(
-                    "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH { dissertations_count: a.dissertations_count + 1 } IN @@coll",
+                    "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH "
+                    "{ dissertations_count: a.dissertations_count + 1 } IN @@coll",
                     bind_vars={"@coll": self.author_col_name, "key": author_key}
                 )
             else:
@@ -1071,7 +1086,9 @@ class DatabaseManager:
             "type": data.get("type", ""),
             "science_branch": data.get("science_branch", ""),
             "defense_date": self._parse_date(data.get("defense_date", "")),
-            "primary_published_at": self._parse_date(data.get("primary_published_at", "")),
+            "primary_published_at": self._parse_date(
+                data.get("primary_published_at", "")
+            ),
             "last_edited_at": self._parse_date(data.get("last_edited_at", "")),
             "specialty_code": data.get("specialty_code", ""),
             "defense_council_code": data.get("defense_council_code", ""),
@@ -1113,25 +1130,233 @@ class DatabaseManager:
         diss_coll = self.db.collection(self.diss_col_name)
         if not diss_coll.has(diss_id):
             raise ValueError(f"Dissertation '{diss_id}' not found")
+
+        current_diss = diss_coll.get(diss_id)
         updates = {}
-        for field in ["title", "type", "science_branch", "specialty_code",
-                      "defense_council_code", "vak_url", "organization_advert_url",
-                      "processing_status"]:
+
+        if "vak_url" in data and data["vak_url"] != current_diss.get("vak_url"):
+            new_vak_url = data["vak_url"].strip()
+            if not new_vak_url:
+                raise ValueError("vak_url is required")
+
+            new_diss_key = self._extract_dissertation_key(new_vak_url)
+            if new_diss_key != diss_id:
+                if diss_coll.has(new_diss_key):
+                    raise ValueError(
+                        f"Dissertation with vak_url '{new_vak_url}' already exists"
+                    )
+
+                new_doc = current_diss.copy()
+                new_doc["_key"] = new_diss_key
+                new_doc["vak_url"] = new_vak_url
+                new_doc["updated_at"] = datetime.now(UTC).isoformat()
+
+                self.db.aql.execute(
+                    "FOR w IN writes FILTER w._to == CONCAT(@old_coll, '/', @old_key) "
+                    "UPDATE w WITH {_to: CONCAT(@coll, '/', @new_key)} IN writes",
+                    bind_vars={
+                        "old_coll": self.diss_col_name,
+                        "old_key": diss_id,
+                        "coll": self.diss_col_name,
+                        "new_key": new_diss_key
+                    }
+                )
+
+                self.db.aql.execute(
+                    "FOR ho IN has_organization FILTER ho._from == "
+                    "CONCAT(@old_coll, '/', @old_key) UPDATE ho WITH "
+                    "{_from: CONCAT(@coll, '/', @new_key)} IN has_organization",
+                    bind_vars={
+                        "old_coll": self.diss_col_name,
+                        "old_key": diss_id,
+                        "coll": self.diss_col_name,
+                        "new_key": new_diss_key
+                    }
+                )
+
+                self.db.aql.execute(
+                    "FOR hf IN has_file FILTER hf._from == "
+                    "CONCAT(@old_coll, '/', @old_key) UPDATE hf WITH "
+                    "{_from: CONCAT(@coll, '/', @new_key)} IN has_file",
+                    bind_vars={
+                        "old_coll": self.diss_col_name,
+                        "old_key": diss_id,
+                        "coll": self.diss_col_name,
+                        "new_key": new_diss_key
+                    }
+                )
+
+                for field in [
+                    "title", "type", "science_branch", "specialty_code",
+                    "defense_council_code", "organization_advert_url",
+                    "processing_status"
+                ]:
+                    if field in data:
+                        new_doc[field] = data[field]
+
+                if "defense_date" in data:
+                    new_doc["defense_date"] = self._parse_date(data["defense_date"])
+                if "primary_published_at" in data:
+                    new_doc["primary_published_at"] = self._parse_date(
+                        data["primary_published_at"]
+                    )
+                if "last_edited_at" in data:
+                    new_doc["last_edited_at"] = self._parse_date(data["last_edited_at"])
+
+                new_doc["updated_at"] = datetime.now(UTC).isoformat()
+
+                diss_coll.insert(new_doc)
+                diss_coll.delete(diss_id)
+
+                if "author_name" in data:
+                    self._update_author_for_dissertation(
+                        new_diss_key, data["author_name"]
+                    )
+                if "organization_name" in data:
+                    self._update_organization_for_dissertation(
+                        new_diss_key, data["organization_name"]
+                    )
+
+                return self.get_dissertation_details(new_diss_key)
+
+        for field in [
+            "title", "type", "science_branch", "specialty_code",
+            "defense_council_code", "organization_advert_url", "processing_status"
+        ]:
             if field in data:
                 updates[field] = data[field]
+
         if "defense_date" in data:
             updates["defense_date"] = self._parse_date(data["defense_date"])
         if "primary_published_at" in data:
-            updates["primary_published_at"] = self._parse_date(data["primary_published_at"])
+            updates["primary_published_at"] = self._parse_date(
+                data["primary_published_at"]
+            )
         if "last_edited_at" in data:
             updates["last_edited_at"] = self._parse_date(data["last_edited_at"])
-        updates["updated_at"] = datetime.now(UTC).isoformat()
+
         if updates:
+            updates["updated_at"] = datetime.now(UTC).isoformat()
             self.db.aql.execute(
                 "FOR d IN @@coll FILTER d._key == @key UPDATE d WITH @fields IN @@coll",
-                bind_vars={"@coll": self.diss_col_name, "key": diss_id, "fields": updates}
+                bind_vars={
+                "@coll": self.diss_col_name,
+                "key": diss_id,
+                "fields": updates
+            }
             )
-        return diss_coll.get(diss_id)
+
+        if "author_name" in data:
+            self._update_author_for_dissertation(
+                diss_id, data["author_name"]
+            )
+        if "organization_name" in data:
+            self._update_organization_for_dissertation(
+                diss_id, data["organization_name"]
+            )
+
+        return self.get_dissertation_details(diss_id)
+
+    def _update_author_for_dissertation(self, diss_key: str, author_name: str):
+        author_name = author_name.strip()
+        if not author_name:
+            return
+
+        author_coll = self.db.collection(self.author_col_name)
+        writes_coll = self.db.collection(self.writes_edge_name)
+
+        current_edges = list(self.db.aql.execute(
+            "FOR w IN writes FILTER w._to == CONCAT(@coll, '/', @diss_key) RETURN w",
+            bind_vars={"coll": self.diss_col_name, "diss_key": diss_key}
+        ))
+
+        if not current_edges:
+            raise ValueError("Dissertation has no author assigned")
+
+        old_author_key = None
+        for edge in current_edges:
+            old_author_key = edge["_from"].split("/")[-1]
+            writes_coll.delete(edge["_key"])
+
+        if old_author_key:
+            self.db.aql.execute(
+                "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH "
+                "{dissertations_count: MAX([0, a.dissertations_count - 1])} IN @@coll",
+                bind_vars={"@coll": self.author_col_name, "key": old_author_key}
+            )
+
+        new_author = list(self.db.aql.execute(
+            "FOR a IN author FILTER a.full_name == @name RETURN a",
+            bind_vars={"name": author_name}
+        ))
+
+        if new_author:
+            new_author_key = new_author[0]["_key"]
+            self.db.aql.execute(
+                "FOR a IN @@coll FILTER a._key == @key UPDATE a WITH "
+                "{ dissertations_count: a.dissertations_count + 1 } IN @@coll",
+                bind_vars={"@coll": self.author_col_name, "key": new_author_key}
+            )
+        else:
+            new_author_key = self._slugify_author_key(author_name)
+            author_coll.insert({
+                "_key": new_author_key,
+                "full_name": author_name,
+                "dissertations_count": 1
+            })
+
+        new_edge_key = f"{new_author_key}_{diss_key}"
+        edge_doc = {
+            "_key": new_edge_key,
+            "_from": f"{self.author_col_name}/{new_author_key}",
+            "_to": f"{self.diss_col_name}/{diss_key}",
+        }
+        writes_coll.insert(edge_doc, overwrite=True)
+
+    def _update_organization_for_dissertation(self, diss_key: str, org_name: str):
+        org_name = org_name.strip()
+        if not org_name:
+            return
+
+        org_coll = self.db.collection(self.org_col_name)
+        has_org_coll = self.db.collection(self.has_org_edge_name)
+
+        current_edges = list(self.db.aql.execute(
+            "FOR ho IN has_organization FILTER ho._from == "
+            "CONCAT(@coll, '/', @diss_key) RETURN ho",
+            bind_vars={"coll": self.diss_col_name, "diss_key": diss_key}
+        ))
+
+        for edge in current_edges:
+            has_org_coll.delete(edge["_key"])
+
+        new_org = list(self.db.aql.execute(
+            "FOR o IN organization FILTER o.full_name == @name RETURN o",
+            bind_vars={"name": org_name}
+        ))
+
+        if new_org:
+            new_org_key = new_org[0]["_key"]
+        else:
+            new_org_key = self._slugify_org_key(org_name)
+            now = datetime.now(UTC).isoformat()
+            org_coll.insert({
+                "_key": new_org_key,
+                "full_name": org_name,
+                "address": "",
+                "phone_number": "",
+                "city": "",
+                "country": "Россия",
+                "created_at": now
+            })
+
+        new_edge_key = f"{diss_key}_{new_org_key}"
+        edge_doc = {
+            "_key": new_edge_key,
+            "_from": f"{self.diss_col_name}/{diss_key}",
+            "_to": f"{self.org_col_name}/{new_org_key}",
+        }
+        has_org_coll.insert(edge_doc, overwrite=True)
 
     def delete_dissertation(self, diss_id: str):
         if not self.db:
@@ -1140,15 +1365,18 @@ class DatabaseManager:
         if not diss_coll.has(diss_id):
             raise ValueError(f"Dissertation '{diss_id}' not found")
         self.db.aql.execute(
-            "FOR w IN writes FILTER w._to == CONCAT(@col, '/', @key) REMOVE w IN writes",
+            "FOR w IN writes FILTER w._to == "
+            "CONCAT(@col, '/', @key) REMOVE w IN writes",
             bind_vars={"col": self.diss_col_name, "key": diss_id}
         )
         self.db.aql.execute(
-            "FOR ho IN has_organization FILTER ho._from == CONCAT(@col, '/', @key) REMOVE ho IN has_organization",
+            "FOR ho IN has_organization FILTER ho._from == "
+            "CONCAT(@col, '/', @key) REMOVE ho IN has_organization",
             bind_vars={"col": self.diss_col_name, "key": diss_id}
         )
         self.db.aql.execute(
-            "FOR hf IN has_file FILTER hf._from == CONCAT(@col, '/', @key) REMOVE hf IN has_file",
+            "FOR hf IN has_file FILTER hf._from == "
+            "CONCAT(@col, '/', @key) REMOVE hf IN has_file",
             bind_vars={"col": self.diss_col_name, "key": diss_id}
         )
         file_coll = self.db.collection(self.file_col_name)

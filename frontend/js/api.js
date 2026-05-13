@@ -212,6 +212,57 @@ class ApiClient {
         params.append('limit', limit);
         return this.get(`/api/stats/organizations/comparison?${params}`);
     }
+
+    async createDissertation(data) {
+        return this.post('/api/dissertations', data);
+    }
+
+    async updateDissertation(dissId, data) {
+        return this.request(`/api/dissertations/${dissId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteDissertation(dissId) {
+        return this.request(`/api/dissertations/${dissId}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async createAuthor(data) {
+        return this.post('/api/authors', data);
+    }
+
+    async updateAuthor(authorId, data) {
+        return this.request(`/api/authors/${authorId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteAuthor(authorId) {
+        return this.request(`/api/authors/${authorId}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async createOrganization(data) {
+        return this.post('/api/organizations', data);
+    }
+
+    async updateOrganization(orgId, data) {
+        return this.request(`/api/organizations/${orgId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteOrganization(orgId) {
+        return this.request(`/api/organizations/${orgId}`, {
+            method: 'DELETE',
+        });
+    }
 }
 
 const api = new ApiClient();

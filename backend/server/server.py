@@ -1,4 +1,6 @@
-from fastapi import FastAPI, HTTPException, Query, File, UploadFile
+import json
+
+from fastapi import FastAPI, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
@@ -131,8 +133,7 @@ def get_authors(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=1000)
 ):
-    result = db.get_all_authors(page=page, page_size=page_size)
-    return result
+    return db.get_all_authors(page=page, page_size=page_size)
 
 @app.get("/api/authors/{author_id}")
 def get_author_details(author_id: str):
@@ -151,8 +152,7 @@ def get_organizations(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=1000)
 ):
-    result = db.get_all_organizations(page=page, page_size=page_size)
-    return result
+    return db.get_all_organizations(page=page, page_size=page_size)
 
 @app.get("/api/organizations/{org_id}")
 def get_organization_details(org_id: str):
@@ -171,8 +171,11 @@ def get_org_dissertations(
     org_id: str, page: int = 1, page_size: int = 10,
     year: int | None = None, specialty: str | None = None, search: str | None = None
 ):
-    res = db.get_organization_dissertations(org_id, page, page_size, year, specialty, search)
-    if not res: raise HTTPException(404, detail="no dissertations")
+    res = db.get_organization_dissertations(
+        org_id, page, page_size, year, specialty, search
+    )
+    if not res:
+        raise HTTPException(404, detail="no dissertations")
     return res
 
 @app.get("/api/export")
@@ -284,95 +287,95 @@ def get_organization_stats():
 
 @app.post("/api/import")
 async def import_dissertations_endpoint(
-    file: UploadFile = File(...),
+    file: UploadFile,
     import_format: str = Query("json")
 ):
     if import_format not in ["json", "csv"]:
-        raise HTTPException(status_code=400, detail="Unsupported import format. Use 'json' or 'csv'")
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported import format. Use 'json' or 'csv'"
+        )
     content = await file.read()
     try:
         data_str = content.decode("utf-8")
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded text")
+    except UnicodeDecodeError as e:
+        raise HTTPException(
+            status_code=400,
+            detail="File must be UTF-8 encoded text"
+        ) from e
     try:
         result = db.import_dissertations(data_str, import_format)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON data")
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail="Invalid JSON data") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Import failed: {e!s}"
+        ) from e
     return result
 
 @app.post("/api/authors")
 def create_author(data: dict):
     try:
-        result = db.create_author(data)
-        return result
+        return db.create_author(data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.put("/api/authors/{author_id}")
 def update_author(author_id: str, data: dict):
     try:
-        result = db.update_author(author_id, data)
-        return result
+        return db.update_author(author_id, data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.delete("/api/authors/{author_id}")
 def delete_author(author_id: str):
     try:
-        result = db.delete_author(author_id)
-        return result
+        return db.delete_author(author_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.post("/api/organizations")
 def create_organization(data: dict):
     try:
-        result = db.create_organization(data)
-        return result
+        return db.create_organization(data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.put("/api/organizations/{org_id}")
 def update_organization(org_id: str, data: dict):
     try:
-        result = db.update_organization(org_id, data)
-        return result
+        return db.update_organization(org_id, data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.delete("/api/organizations/{org_id}")
 def delete_organization(org_id: str):
     try:
-        result = db.delete_organization(org_id)
-        return result
+        return db.delete_organization(org_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.post("/api/dissertations")
 def create_dissertation(data: dict):
     try:
-        result = db.create_dissertation(data)
-        return result
+        return db.create_dissertation(data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.put("/api/dissertations/{diss_id}")
 def update_dissertation(diss_id: str, data: dict):
     try:
-        result = db.update_dissertation(diss_id, data)
-        return result
+        return db.update_dissertation(diss_id, data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.delete("/api/dissertations/{diss_id}")
 def delete_dissertation(diss_id: str):
     try:
-        result = db.delete_dissertation(diss_id)
-        return result
+        return db.delete_dissertation(diss_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.get("/api/stats/organizations/comparison")
 def get_organizations_comparison(
@@ -380,5 +383,8 @@ def get_organizations_comparison(
     year_to: int | None = Query(None),
     limit: int = Query(10, ge=1, le=100)
 ):
-    result = db.get_organizations_comparison(year_from=year_from, year_to=year_to, limit=limit)
-    return result
+    return db.get_organizations_comparison(
+        year_from=year_from,
+        year_to=year_to,
+        limit=limit
+    )

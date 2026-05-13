@@ -18,6 +18,11 @@ class DissertationPage {
             applyFiltersBtn.addEventListener('click', () => this.applyFilters());
         }
 
+        const createBtn = document.getElementById('create-dissertation-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => this.openCreateModal());
+        }
+
         const resetFiltersBtn = document.querySelector('.btn-secondary');
         if (resetFiltersBtn) {
             resetFiltersBtn.addEventListener('click', () => this.resetFilters());
@@ -300,13 +305,136 @@ class DissertationPage {
             <td class="org-name">${this.escapeHtml(organization)}</td>
             <td class="spec-name">${this.escapeHtml(specialty)}</td>
             <td>
-                <button class="btn-view-details" onclick="window.location.href='dissertation-detail.html?id=${dissertation._key}'">
-                    →
-                </button>
+                <div class="action-buttons-cell">
+                    <button class="btn-edit" onclick="dissertationPage.openEditModal('${dissertation._key}')">
+                        ✏️
+                    </button>
+                    <button class="btn-delete" onclick="dissertationPage.openDeleteModal('${dissertation._key}', '${this.escapeHtml(title)}')">
+                        🗑️
+                    </button>
+                </div>
             </td>
         `;
 
         return tr;
+    }
+
+    openCreateModal() {
+        this.currentEditingId = null;
+        document.getElementById('modal-title').textContent = 'Создание диссертации';
+        document.getElementById('dissertation-form').reset();
+        document.getElementById('dissertation-modal').style.display = 'flex';
+    }
+
+    async openEditModal(dissId) {
+        try {
+            const dissertation = await api.getDissertationDetails(dissId);
+            this.currentEditingId = dissId;
+
+            document.getElementById('modal-title').textContent = 'Редактирование диссертации';
+            this.populateDissertationForm(dissertation);
+            document.getElementById('dissertation-modal').style.display = 'flex';
+        } catch (error) {
+            console.error('Failed to load dissertation for editing:', error);
+            this.showError('Не удалось загрузить диссертацию для редактирования');
+        }
+    }
+
+    populateDissertationForm(dissertation) {
+        const form = document.getElementById('dissertation-form');
+
+        form.querySelector('[name="title"]').value = dissertation.title || '';
+        form.querySelector('[name="defense_date"]').value = dissertation.defense_date || '';
+        form.querySelector('[name="specialty_code"]').value = dissertation.specialty_code || '';
+        form.querySelector('[name="type"]').value = dissertation.type || 'Кандидатская';
+        form.querySelector('[name="science_branch"]').value = dissertation.science_branch || '';
+        form.querySelector('[name="defense_council_code"]').value = dissertation.defense_council_code || '';
+        form.querySelector('[name="vak_url"]').value = dissertation.vak_url || '';
+        form.querySelector('[name="organization_advert_url"]').value = dissertation.organization_advert_url || '';
+        form.querySelector('[name="primary_published_at"]').value = dissertation.primary_published_at || '';
+
+        const authorName = dissertation.author?.full_name || dissertation.author_name || '';
+        form.querySelector('[name="author_name"]').value = authorName;
+
+        const orgName = dissertation.organization?.full_name || dissertation.organization_name || '';
+        form.querySelector('[name="organization_name"]').value = orgName;
+    }
+
+    async saveDissertation() {
+        try {
+            const formData = this.getFormDataFromForm();
+
+            const requiredFields = ['title', 'author_name', 'defense_date', 'organization_name', 'specialty_code', 'vak_url'];
+            const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
+
+            if (missingFields.length > 0) {
+                this.showError('Заполните все обязательные поля: ' + missingFields.map(field => {
+                    const fieldNames = {
+                        'title': 'Название',
+                        'author_name': 'Автор',
+                        'defense_date': 'Дата защиты',
+                        'organization_name': 'Организация',
+                        'specialty_code': 'Код специальности',
+                        'vak_url': 'URL ВАК'
+                    };
+                    return fieldNames[field] || field;
+                }).join(', '));
+                return;
+            }
+
+            if (this.currentEditingId) {
+                await api.updateDissertation(this.currentEditingId, formData);
+                this.showSuccess('Диссертация успешно обновлена');
+            } else {
+                await api.createDissertation(formData);
+                this.showSuccess('Диссертация успешно создана');
+            }
+
+            this.closeDissertationModal();
+            await this.loadDissertations();
+        } catch (error) {
+            console.error('Failed to save dissertation:', error);
+            this.showError('Не удалось сохранить диссертацию: ' + (error.message || 'Произошла ошибка'));
+        }
+    }
+
+    getFormDataFromForm() {
+        const form = document.getElementById('dissertation-form');
+        const formData = new FormData(form);
+        const data = {};
+
+        for (let [key, value] of formData.entries()) {
+            data[key] = value;
+        }
+
+        return data;
+    }
+
+    openDeleteModal(dissId, title) {
+        this.currentDeleteId = dissId;
+        document.getElementById('delete-dissertation-title').textContent = title;
+        document.getElementById('delete-modal').style.display = 'flex';
+    }
+
+    async confirmDelete() {
+        try {
+            await api.deleteDissertation(this.currentDeleteId);
+            this.showSuccess('Диссертация успешно удалена');
+            this.closeDeleteModal();
+            await this.loadDissertations();
+        } catch (error) {
+            console.error('Failed to delete dissertation:', error);
+            this.showError('Не удалось удалить диссертацию: ' + error.message);
+        }
+    }
+
+    closeDissertationModal() {
+        document.getElementById('dissertation-modal').style.display = 'none';
+    }
+
+    closeDeleteModal() {
+        document.getElementById('delete-modal').style.display = 'none';
+        this.currentDeleteId = null;
     }
 
     updatePagination() {
@@ -433,5 +561,21 @@ class DissertationPage {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new DissertationPage();
+    window.dissertationPage = new DissertationPage();
 });
+
+window.closeDissertationModal = function() {
+    window.dissertationPage.closeDissertationModal();
+};
+
+window.closeDeleteModal = function() {
+    window.dissertationPage.closeDeleteModal();
+};
+
+window.saveDissertation = function() {
+    window.dissertationPage.saveDissertation();
+};
+
+window.confirmDelete = function() {
+    window.dissertationPage.confirmDelete();
+};
