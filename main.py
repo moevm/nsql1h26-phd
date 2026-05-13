@@ -1,4 +1,5 @@
 import os
+
 import uvicorn
 
 from backend.database.arango import DatabaseManager

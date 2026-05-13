@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query, File, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
@@ -299,7 +299,7 @@ async def import_dissertations_endpoint(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON data")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {e!s}")
     return result
 
 @app.post("/api/authors")
