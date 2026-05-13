@@ -173,6 +173,29 @@ class ApiClient {
     async getAuthors(page = 1, pageSize = 10) {
         return this.get(`/api/authors?page=${page}&page_size=${pageSize}`);
     }
+
+    async importDissertations(file, format) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const url = `${this.baseUrl}/api/import?import_format=${format}`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP error. Status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Import failed:', error);
+            throw error;
+        }
+    }
 }
 
 const api = new ApiClient();

@@ -30,7 +30,7 @@ class MainPage {
                         window.location.href = 'dissertation.html';
                         break;
                     case 'Запустить импорт':
-                        Utils.showInfoMessage('Импорт данных станет доступен в ближайшее время');
+                        this.handleImport();
                         break;
                 }
             });
@@ -250,6 +250,40 @@ class MainPage {
         } catch (error) {
             Utils.showErrorMessage('Ошибка экспорта данных');
         }
+    }
+
+    handleImport() {
+        const fileInput = document.getElementById('import-file-input');
+        if (!fileInput) {
+            Utils.showErrorMessage('Поле выбора файла не найдено');
+            return;
+        }
+        fileInput.value = '';
+        fileInput.click();
+
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name.toLowerCase();
+            let format = 'json';
+            if (fileName.endsWith('.csv')) {
+                format = 'csv';
+            } else if (!fileName.endsWith('.json')) {
+                Utils.showErrorMessage('Неподдерживаемый формат файла. Используйте .json или .csv');
+                return;
+            }
+
+            try {
+                Utils.showInfoMessage(`Импортируем файл ${file.name}...`);
+                const result = await api.importDissertations(file, format);
+                Utils.showInfoMessage(`Импортировано записей: ${result.imported}`);
+            } catch (error) {
+                Utils.showErrorMessage('Ошибка импорта: ' + (error.message || 'неизвестная ошибка'));
+            } finally {
+                fileInput.value = '';
+            }
+        };
     }
 }
 
