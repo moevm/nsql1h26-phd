@@ -302,3 +302,74 @@ async def import_dissertations_endpoint(
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
     return result
 
+@app.post("/api/authors")
+def create_author(data: dict):
+    try:
+        result = db.create_author(data)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/api/authors/{author_id}")
+def update_author(author_id: str, data: dict):
+    try:
+        result = db.update_author(author_id, data)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/authors/{author_id}")
+def delete_author(author_id: str):
+    try:
+        result = db.delete_author(author_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/organizations")
+def create_organization(data: dict):
+    try:
+        result = db.create_organization(data)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/api/organizations/{org_id}")
+def update_organization(org_id: str, data: dict):
+    try:
+        result = db.update_organization(org_id, data)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/organizations/{org_id}")
+def delete_organization(org_id: str):
+    try:
+        result = db.delete_organization(org_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/dissertations")
+def create_dissertation(data: dict):
+    try:
+        result = db.create_dissertation(data)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/api/dissertations/{diss_id}")
+def update_dissertation(diss_id: str, data: dict):
+    try:
+        result = db.update_dissertation(diss_id, data)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/dissertations/{diss_id}")
+def delete_dissertation(diss_id: str):
+    try:
+        result = db.delete_dissertation(diss_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
