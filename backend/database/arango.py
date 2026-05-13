@@ -817,7 +817,11 @@ class DatabaseManager:
             FILTER cnt > 0
             SORT cnt DESC
             LIMIT @limit
-            RETURN {{ organization_key: o._key, organization_name: o.full_name, count: cnt }}
+            RETURN {{
+                organization_key: o._key,
+                organization_name: o.full_name,
+                count: cnt
+            }}
         """
         return list(self.db.aql.execute(query, bind_vars=bind_vars))
 

@@ -383,5 +383,8 @@ def get_organizations_comparison(
     year_to: int | None = Query(None),
     limit: int = Query(10, ge=1, le=100)
 ):
-    result = db.get_organizations_comparison(year_from=year_from, year_to=year_to, limit=limit)
-    return result
+    return db.get_organizations_comparison(
+        year_from=year_from,
+        year_to=year_to,
+        limit=limit
+    )
