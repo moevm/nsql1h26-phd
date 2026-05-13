@@ -791,6 +791,34 @@ class DatabaseManager:
         """
         return list(self.db.aql.execute(query))
 
+    def get_organizations_comparison(self, year_from=None, year_to=None, limit=10):
+        if not self.db:
+            self.connect()
+        bind_vars = {"limit": limit}
+        filter_parts = []
+        if year_from:
+            filter_parts.append("LEFT(d.defense_date, 4) >= @year_from")
+            bind_vars["year_from"] = str(year_from)
+        if year_to:
+            filter_parts.append("LEFT(d.defense_date, 4) <= @year_to")
+            bind_vars["year_to"] = str(year_to)
+        filter_d = " AND ".join(filter_parts) if filter_parts else "true"
+        query = f"""
+        FOR o IN organization
+            LET cnt = COUNT(
+                FOR ho IN has_organization
+                FILTER ho._to == o._id
+                FOR d IN dissertation
+                FILTER d._id == ho._from AND {filter_d}
+                RETURN 1
+            )
+            FILTER cnt > 0
+            SORT cnt DESC
+            LIMIT @limit
+            RETURN {{ organization_key: o._key, organization_name: o.full_name, count: cnt }}
+        """
+        return list(self.db.aql.execute(query, bind_vars=bind_vars))
+
     def get_yearly_distribution(self):
         if not self.db:
             self.connect()

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сравнение вузов - Диссертационная система</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/university-comparison.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner" style="padding: 0 32px;">
+      <div class="logo">Диссертационная система</div>
+      <nav class="nav">
+        <a href="index.html" class="nav-link">Главная</a>
+        <a href="dissertation.html" class="nav-link">Диссертации</a>
+        <a href="authors.html" class="nav-link">Авторы</a>
+        <a href="organizations.html" class="nav-link active">Организации</a>
+      </nav>
+      <div class="user-area"></div>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="sidebar-nav">
+      <a href="index.html" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-3h2v3a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+        Главная
+      </a>
+      <a href="dissertation.html" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM13 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM13 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z"/></svg>
+        Расширенный поиск
+      </a>
+      <div class="sidebar-divider"></div>
+      <a href="#" class="sidebar-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/></svg>
+        Аналитика
+      </a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <h1 class="page-title">Сравнение вузов</h1>
+    <div class="page-subtitle">Топ организаций по количеству защит диссертаций</div>
+
+    <div class="filters-card" style="margin-bottom: 32px;">
+      <div class="filters-grid" style="grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end;">
+        <div class="filter-field">
+          <label class="filter-label">Год от</label>
+          <input type="number" id="year-from" class="filter-input" placeholder="2015" min="2000" max="2030">
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Год до</label>
+          <input type="number" id="year-to" class="filter-input" placeholder="2026" min="2000" max="2030">
+        </div>
+        <div class="filter-field" style="display: flex; align-items: flex-end;">
+          <button id="show-all-btn" class="btn-primary" style="margin-right: 8px;">Всё время</button>
+          <button id="apply-period-btn" class="btn-secondary">Применить период</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Распределение по организациям</span>
+        </div>
+        <div style="padding: 20px; max-height: 400px;">
+          <canvas id="org-pie-chart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Топ-10</span>
+        </div>
+        <div class="results-table" style="max-height: 400px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr><th>№</th><th>Организация</th><th>Количество диссертаций</th></tr>
+            </thead>
+            <tbody id="top10-table-body">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
