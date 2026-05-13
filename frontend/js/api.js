@@ -196,6 +196,22 @@ class ApiClient {
             throw error;
         }
     }
+
+    async getYearlyDistribution() {
+        return this.get('/api/stats/years');
+    }
+
+    async getOrganizationStats() {
+        return this.get('/api/stats/organizations');
+    }
+
+    async getOrganizationsComparison(yearFrom, yearTo, limit = 10) {
+        const params = new URLSearchParams();
+        if (yearFrom) params.append('year_from', yearFrom);
+        if (yearTo) params.append('year_to', yearTo);
+        params.append('limit', limit);
+        return this.get(`/api/stats/organizations/comparison?${params}`);
+    }
 }
 
 const api = new ApiClient();

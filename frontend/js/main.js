@@ -36,6 +36,15 @@ class MainPage {
             });
         });
 
+        const reports = document.querySelectorAll('.report-card');
+        reports.forEach(card => {
+            card.addEventListener('click', (e) => {
+                const name = card.querySelector('.report-name')?.textContent.trim();
+                if (name === 'По периодам') this.handlePeriodReport();
+                if (name === 'Сравнение вузов') this.handleUniversityComparison();
+            });
+        });
+
         const exportJsonBtn = document.getElementById('export-json-btn');
         if (exportJsonBtn) {
             exportJsonBtn.addEventListener('click', (e) => {
@@ -284,6 +293,22 @@ class MainPage {
                 fileInput.value = '';
             }
         };
+    }
+
+    async handlePeriodReport() {
+        try {
+            const data = await api.getYearlyDistribution();
+            if (data && data.years && data.counts) {
+                this.updateYearChart(data.years, data.counts);
+                document.querySelector('.chart-container')?.scrollIntoView({ behavior: 'smooth' });
+            }
+        } catch (e) {
+            Utils.showErrorMessage('Ошибка загрузки отчёта по периодам');
+        }
+    }
+
+    async handleUniversityComparison() {
+        window.location.href = 'university-comparison.html';
     }
 }
 
