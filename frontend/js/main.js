@@ -29,9 +29,27 @@ class MainPage {
                     case 'Новый поиск':
                         window.location.href = 'dissertation.html';
                         break;
+                    case 'Запустить импорт':
+                        Utils.showInfoMessage('Импорт данных станет доступен в ближайшее время');
+                        break;
                 }
             });
         });
+
+        const exportJsonBtn = document.getElementById('export-json-btn');
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleExport('json');
+            });
+        }
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        if (exportCsvBtn) {
+            exportCsvBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleExport('csv');
+            });
+        }
 
         document.querySelectorAll('.dissertation-item').forEach(item => {
             item.addEventListener('click', () => {
@@ -42,7 +60,6 @@ class MainPage {
             });
         });
     }
-
     async loadStatistics() {
         try {
             const stats = await api.getStatistics();
@@ -224,6 +241,15 @@ class MainPage {
 
     showInfoMessage(message) {
         Utils.showInfoMessage(message);
+    }
+
+    async handleExport(format) {
+        try {
+            Utils.showInfoMessage(`Начинаем экспорт всех диссертаций в формате ${format.toUpperCase()}...`);
+            await api.exportDissertations({}, format);
+        } catch (error) {
+            Utils.showErrorMessage('Ошибка экспорта данных');
+        }
     }
 }
 
