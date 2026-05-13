@@ -30,12 +30,8 @@ class OrganizationDetailPage {
                 this.loadDissertations();
             }
         });
-        document.querySelector('.search-select:first-of-type')?.addEventListener('change', e => {
+        document.querySelector('.search-select')?.addEventListener('change', e => {
             this.filters.year = e.target.value === 'Все годы' ? null : e.target.value;
-            this.currentPage = 1; this.loadDissertations();
-        });
-        document.querySelector('.search-select:last-of-type')?.addEventListener('change', e => {
-            this.filters.specialty = e.target.value === 'Все специальности' ? null : e.target.value;
             this.currentPage = 1; this.loadDissertations();
         });
     }

@@ -351,7 +351,6 @@ class DissertationPage {
         form.querySelector('[name="defense_council_code"]').value = dissertation.defense_council_code || '';
         form.querySelector('[name="vak_url"]').value = dissertation.vak_url || '';
         form.querySelector('[name="organization_advert_url"]').value = dissertation.organization_advert_url || '';
-        form.querySelector('[name="primary_published_at"]').value = dissertation.primary_published_at || '';
 
         const authorName = dissertation.author?.full_name || dissertation.author_name || '';
         form.querySelector('[name="author_name"]').value = authorName;
