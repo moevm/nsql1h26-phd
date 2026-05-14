@@ -1,6 +1,6 @@
 services:
   db:
-    image: arangodb/arangodb:3.12
+    image: arangodb/arangodb:3.12.4.3
     container_name: arangodb
     environment:
       - ARANGO_ROOT_PASSWORD=password
@@ -13,11 +13,11 @@ services:
       retries: 10
 
   selenium-chrome:
-    image: selenium/standalone-chrome@sha256:b36b0749f77dce2cbf9a5bc7ac02b0364c91c3a149c5c36cd46dfb04ca2b39a4
+    image: selenium/standalone-chrome:4.43.0-20260404
     container_name: selenium-chrome
     ports:
-      - "4444:4444"
-      - "7900:7900"
+      - "127.0.0.1:4444:4444"
+      - "127.0.0.1:7900:7900"
     environment:
       - SE_VNC_NO_PASSWORD=1
       - SE_SCREEN_WIDTH=1920
@@ -53,7 +53,7 @@ services:
       - PARSE=false
       - MAX_PAGES=3
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     working_dir: /app
     networks:
       - dissertations-network
@@ -64,7 +64,7 @@ services:
       dockerfile: Dockerfile.frontend
     container_name: frontend
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     networks:
       - dissertations-network
     depends_on:
