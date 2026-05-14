@@ -6,6 +6,9 @@ services:
       - ARANGO_ROOT_PASSWORD=password
     networks:
       - dissertations-network
+    volumes:
+      - arangodb_data:/var/lib/arangodb3
+      - arangodb_apps:/var/lib/arangodb3-apps
     healthcheck:
       test: ["CMD", "arangosh", "--server.endpoint", "http://127.0.0.1:8529", "--server.password", "password", "--javascript.execute-string", "require('internal').print(true)"]
       interval: 10s
@@ -70,6 +73,12 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  arangodb_data:
+    driver: local
+  arangodb_apps:
+    driver: local
 
 networks:
   dissertations-network:
